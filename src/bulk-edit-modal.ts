@@ -66,17 +66,19 @@ export class BulkEditModal extends Modal {
 			text: `${this.selectedFiles.length} file${this.selectedFiles.length === 1 ? "" : "s"} selected`,
 		});
 
-		if (settings.properties.length === 0) {
+		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
+
+		if (editableProperties.length === 0) {
 			contentEl.createEl("p", {text: "No properties configured. Add properties in the plugin settings."});
 			return;
 		}
 
-		this.selectedProperty = settings.properties[0]?.name ?? "";
+		this.selectedProperty = editableProperties[0]?.name ?? "";
 
 		new Setting(contentEl)
 			.setName("Property")
 			.addDropdown(dropdown => {
-				for (const prop of settings.properties) {
+				for (const prop of editableProperties) {
 					dropdown.addOption(prop.name, prop.name);
 				}
 				dropdown.setValue(this.selectedProperty);
