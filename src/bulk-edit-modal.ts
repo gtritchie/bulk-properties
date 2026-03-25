@@ -1,43 +1,15 @@
 import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import type BasepropPlugin from "./main";
 
-interface MetadataTypeManager {
-	getAssignedType(property: string): string | undefined;
-}
-
-function getTypeManager(app: App): MetadataTypeManager | undefined {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-	const manager = (app as any).metadataTypeManager as MetadataTypeManager | undefined;
-	if (manager && typeof manager.getAssignedType === "function") {
-		return manager;
-	}
-	return undefined;
-}
-
-function getSelectedFiles(app: App): TFile[] {
+function getSelectedFiles(app: App, selectionProperty: string): TFile[] {
 	const files: TFile[] = [];
 	for (const file of app.vault.getMarkdownFiles()) {
 		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter?.["selected"] === true) {
+		if (cache?.frontmatter?.[selectionProperty] === true) {
 			files.push(file);
 		}
 	}
 	return files;
-}
-
-function getAllPropertyNames(app: App): string[] {
-	const names = new Set<string>();
-	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter) {
-			for (const key of Object.keys(cache.frontmatter)) {
-				if (key !== "selected" && key !== "position") {
-					names.add(key);
-				}
-			}
-		}
-	}
-	return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 function coerceValue(raw: string, type: string): unknown {
@@ -64,7 +36,6 @@ function coerceValue(raw: string, type: string): unknown {
 export class BulkEditModal extends Modal {
 	private plugin: BasepropPlugin;
 	private selectedFiles: TFile[];
-	private propertyNames: string[];
 	private selectedProperty = "";
 	private rawValue = "";
 	private deselectWhenFinished: boolean;
@@ -74,19 +45,19 @@ export class BulkEditModal extends Modal {
 		super(app);
 		this.plugin = plugin;
 		this.deselectWhenFinished = plugin.settings.deselectWhenFinished;
-		this.selectedFiles = getSelectedFiles(app);
-		this.propertyNames = getAllPropertyNames(app);
+		this.selectedFiles = getSelectedFiles(app, plugin.settings.selectionProperty);
 	}
 
 	onOpen() {
 		const {contentEl} = this;
+		const {settings} = this.plugin;
 		contentEl.addClass("baseprop-modal");
 
 		contentEl.createEl("h2", {text: "Bulk edit properties"});
 
 		if (this.selectedFiles.length === 0) {
 			contentEl.createEl("p", {
-				text: 'No files have the "selected" property checked. Mark files by setting their "selected" checkbox property to true.',
+				text: `No files have the "${settings.selectionProperty}" property checked. Mark files by setting their "${settings.selectionProperty}" checkbox property to true.`,
 			});
 			return;
 		}
@@ -95,18 +66,18 @@ export class BulkEditModal extends Modal {
 			text: `${this.selectedFiles.length} file${this.selectedFiles.length === 1 ? "" : "s"} selected`,
 		});
 
-		if (this.propertyNames.length === 0) {
-			contentEl.createEl("p", {text: "No properties found in vault."});
+		if (settings.properties.length === 0) {
+			contentEl.createEl("p", {text: "No properties configured. Add properties in the plugin settings."});
 			return;
 		}
 
-		this.selectedProperty = this.propertyNames[0] ?? "";
+		this.selectedProperty = settings.properties[0]?.name ?? "";
 
 		new Setting(contentEl)
 			.setName("Property")
 			.addDropdown(dropdown => {
-				for (const name of this.propertyNames) {
-					dropdown.addOption(name, name);
+				for (const prop of settings.properties) {
+					dropdown.addOption(prop.name, prop.name);
 				}
 				dropdown.setValue(this.selectedProperty);
 				dropdown.onChange(value => {
@@ -140,8 +111,8 @@ export class BulkEditModal extends Modal {
 	}
 
 	private getPropertyType(name: string): string {
-		const manager = getTypeManager(this.app);
-		return manager?.getAssignedType(name) ?? "text";
+		const prop = this.plugin.settings.properties.find(p => p.name === name);
+		return prop?.type ?? "text";
 	}
 
 	private renderValueInput() {
@@ -219,6 +190,7 @@ export class BulkEditModal extends Modal {
 		const property = this.selectedProperty;
 		const type = this.getPropertyType(property);
 		const value = coerceValue(this.rawValue, type);
+		const selProp = this.plugin.settings.selectionProperty;
 
 		let succeeded = 0;
 		const failed: string[] = [];
@@ -227,7 +199,7 @@ export class BulkEditModal extends Modal {
 				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 					fm[property] = value;
 					if (this.deselectWhenFinished) {
-						fm["selected"] = false;
+						fm[selProp] = false;
 					}
 				});
 				succeeded++;
