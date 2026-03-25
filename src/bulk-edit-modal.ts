@@ -173,28 +173,24 @@ export class BulkEditModal extends Modal {
 			}
 
 			case "date": {
-				const input = this.valueContainerEl.createEl("div");
-				const s = new Setting(input).setName("New value");
 				const dateInput = document.createElement("input");
 				dateInput.type = "date";
 				dateInput.className = "baseprop-date-input";
 				dateInput.addEventListener("input", () => {
 					this.rawValue = dateInput.value;
 				});
-				s.controlEl.appendChild(dateInput);
+				setting.controlEl.appendChild(dateInput);
 				break;
 			}
 
 			case "datetime": {
-				const input = this.valueContainerEl.createEl("div");
-				const s = new Setting(input).setName("New value");
 				const dtInput = document.createElement("input");
 				dtInput.type = "datetime-local";
 				dtInput.className = "baseprop-date-input";
 				dtInput.addEventListener("input", () => {
 					this.rawValue = dtInput.value;
 				});
-				s.controlEl.appendChild(dtInput);
+				setting.controlEl.appendChild(dtInput);
 				break;
 			}
 
@@ -224,18 +220,27 @@ export class BulkEditModal extends Modal {
 		const type = this.getPropertyType(property);
 		const value = coerceValue(this.rawValue, type);
 
-		let count = 0;
+		let succeeded = 0;
+		const failed: string[] = [];
 		for (const file of this.selectedFiles) {
-			await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				fm[property] = value;
-				if (this.deselectWhenFinished) {
-					fm["selected"] = false;
-				}
-			});
-			count++;
+			try {
+				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+					fm[property] = value;
+					if (this.deselectWhenFinished) {
+						fm["selected"] = false;
+					}
+				});
+				succeeded++;
+			} catch {
+				failed.push(file.path);
+			}
 		}
 
-		new Notice(`Updated "${property}" in ${count} file${count === 1 ? "" : "s"}`);
+		if (failed.length === 0) {
+			new Notice(`Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`);
+		} else {
+			new Notice(`Updated ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`);
+		}
 		this.close();
 	}
 }
