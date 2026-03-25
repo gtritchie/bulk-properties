@@ -1,35 +1,33 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import type BasepropPlugin from "./main";
 
-export interface MyPluginSettings {
-	mySetting: string;
+export interface BasepropSettings {
+	deselectWhenFinished: boolean;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+export const DEFAULT_SETTINGS: BasepropSettings = {
+	deselectWhenFinished: false,
+};
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class BasepropSettingTab extends PluginSettingTab {
+	plugin: BasepropPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: BasepropPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName("Deselect when finished")
+			.setDesc("Default value for the deselect toggle in the bulk edit dialog")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.deselectWhenFinished)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.deselectWhenFinished = value;
 					await this.plugin.saveSettings();
 				}));
 	}

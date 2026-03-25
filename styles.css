@@ -1,8 +1,13 @@
-/*
+.baseprop-modal {
+	max-width: 500px;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.baseprop-date-input,
+.baseprop-number-input {
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--input-radius);
+	color: var(--text-normal);
+	padding: var(--size-4-1) var(--size-4-2);
+	font-size: var(--font-ui-medium);
+}
