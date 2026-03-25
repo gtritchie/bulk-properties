@@ -18,5 +18,8 @@ main.js
 # obsidian
 data.json
 
+# claude
+.claude/settings.local.json
+
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
