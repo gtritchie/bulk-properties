@@ -44,6 +44,7 @@ export class BulkEditModal extends Modal {
 	private pendingSaves: Map<TFile, Promise<void>> = new Map();
 	private fileCheckboxes: HTMLInputElement[] = [];
 	private updateBtn: HTMLButtonElement;
+	private uiLocked = false;
 
 	constructor(app: App, plugin: BasepropPlugin) {
 		super(app);
@@ -161,7 +162,9 @@ export class BulkEditModal extends Modal {
 				new Notice(`Failed to update selection for ${file.path}`);
 			}
 			this.updateCountText();
-			checkbox.disabled = false;
+			if (!this.uiLocked) {
+				checkbox.disabled = false;
+			}
 		});
 		this.pendingSaves.set(file, save);
 	}
@@ -250,6 +253,7 @@ export class BulkEditModal extends Modal {
 	}
 
 	private async doUpdate() {
+		this.uiLocked = true;
 		this.setUIEnabled(false);
 		await Promise.all(this.pendingSaves.values());
 
