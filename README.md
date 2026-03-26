@@ -21,7 +21,7 @@ Before using the command, configure the plugin in Settings → Bulk Property Edi
 
 - **Selection property** — the name of the checkbox property used to mark files as selected (default: `selected`). Autocompletes from existing vault properties.
 - **Properties** — add the properties you want to be available for bulk editing, specifying the name and type for each. Property names autocomplete from the vault. Supported types: text, number, checkbox, date, datetime, tags, aliases, multitext.
-- **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog.
+- **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog (default: on).
 
 ## Installing
 
