@@ -57,7 +57,7 @@ export interface BasepropSettings {
 }
 
 export const DEFAULT_SETTINGS: BasepropSettings = {
-	deselectWhenFinished: false,
+	deselectWhenFinished: true,
 	selectionProperty: "selected",
 	properties: [],
 };
