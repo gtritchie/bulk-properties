@@ -1,5 +1,36 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {AbstractInputSuggest, App, PluginSettingTab, Setting} from "obsidian";
 import type BasepropPlugin from "./main";
+
+function getAllPropertyNames(app: App): string[] {
+	const names = new Set<string>();
+	for (const file of app.vault.getMarkdownFiles()) {
+		const cache = app.metadataCache.getFileCache(file);
+		if (cache?.frontmatter) {
+			for (const key of Object.keys(cache.frontmatter)) {
+				if (key !== "position") {
+					names.add(key);
+				}
+			}
+		}
+	}
+	return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+class PropertyNameSuggest extends AbstractInputSuggest<string> {
+	getSuggestions(query: string): string[] {
+		const lower = query.toLowerCase();
+		return getAllPropertyNames(this.app).filter(name => name.toLowerCase().includes(lower));
+	}
+
+	renderSuggestion(value: string, el: HTMLElement): void {
+		el.setText(value);
+	}
+
+	selectSuggestion(value: string): void {
+		this.setValue(value);
+		this.close();
+	}
+}
 
 export const PROPERTY_TYPES = [
 	"text",
@@ -46,13 +77,16 @@ export class BasepropSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Selection property")
 			.setDesc("The checkbox property used to mark files as selected")
-			.addText(text => text
-				.setPlaceholder("Selected")
-				.setValue(this.plugin.settings.selectionProperty)
-				.onChange(async (value) => {
-					this.plugin.settings.selectionProperty = value.trim() || "selected";
-					await this.plugin.saveSettings();
-				}));
+			.addSearch(search => {
+				search
+					.setPlaceholder("Selected")
+					.setValue(this.plugin.settings.selectionProperty)
+					.onChange(async (value) => {
+						this.plugin.settings.selectionProperty = value.trim() || "selected";
+						await this.plugin.saveSettings();
+					});
+				new PropertyNameSuggest(this.app, search.inputEl);
+			});
 
 		new Setting(containerEl)
 			.setName("Deselect when finished")
@@ -88,11 +122,14 @@ export class BasepropSettingTab extends PluginSettingTab {
 
 		const addSetting = new Setting(containerEl)
 			.setName("Add property")
-			.addText(text => text
-				.setPlaceholder("Property name")
-				.onChange(value => {
-					newName = value.trim();
-				}))
+			.addSearch(search => {
+				search
+					.setPlaceholder("Property name")
+					.onChange(value => {
+						newName = value.trim();
+					});
+				new PropertyNameSuggest(this.app, search.inputEl);
+			})
 			.addDropdown(dropdown => {
 				for (const t of PROPERTY_TYPES) {
 					dropdown.addOption(t, t);

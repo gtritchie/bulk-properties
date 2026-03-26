@@ -42,6 +42,8 @@ export class BulkEditModal extends Modal {
 	private valueContainerEl: HTMLElement;
 	private countEl: HTMLElement;
 	private pendingSaves: Map<TFile, Promise<void>> = new Map();
+	private fileCheckboxes: HTMLInputElement[] = [];
+	private updateBtn: HTMLButtonElement;
 
 	constructor(app: App, plugin: BasepropPlugin) {
 		super(app);
@@ -74,6 +76,7 @@ export class BulkEditModal extends Modal {
 			const checkbox = row.createEl("input", {type: "checkbox"});
 			checkbox.type = "checkbox";
 			checkbox.checked = checked;
+			this.fileCheckboxes.push(checkbox);
 			row.createEl("span", {text: file.path, cls: "baseprop-file-path"});
 			checkbox.addEventListener("change", () => {
 				void this.toggleSelection(file, checkbox);
@@ -114,12 +117,15 @@ export class BulkEditModal extends Modal {
 				}));
 
 		new Setting(contentEl)
-			.addButton(btn => btn
-				.setButtonText("Update")
-				.setCta()
-				.onClick(() => {
-					void this.doUpdate();
-				}));
+			.addButton(btn => {
+				btn
+					.setButtonText("Update")
+					.setCta()
+					.onClick(() => {
+						void this.doUpdate();
+					});
+				this.updateBtn = btn.buttonEl;
+			});
 	}
 
 	onClose() {
@@ -236,7 +242,15 @@ export class BulkEditModal extends Modal {
 		}
 	}
 
+	private setUIEnabled(enabled: boolean) {
+		for (const cb of this.fileCheckboxes) {
+			cb.disabled = !enabled;
+		}
+		this.updateBtn.disabled = !enabled;
+	}
+
 	private async doUpdate() {
+		this.setUIEnabled(false);
 		await Promise.all(this.pendingSaves.values());
 
 		const property = this.selectedProperty;
