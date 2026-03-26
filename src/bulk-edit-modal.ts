@@ -237,6 +237,8 @@ export class BulkEditModal extends Modal {
 	}
 
 	private async doUpdate() {
+		await Promise.all(this.pendingSaves.values());
+
 		const property = this.selectedProperty;
 		const type = this.getPropertyType(property);
 		const value = coerceValue(this.rawValue, type);
