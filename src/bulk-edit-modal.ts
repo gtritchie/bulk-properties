@@ -9,7 +9,7 @@ function getSelectedFiles(app: App, selectionProperty: string): TFile[] {
 			files.push(file);
 		}
 	}
-	return files;
+	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 function coerceValue(raw: string, type: string): unknown {
@@ -35,17 +35,19 @@ function coerceValue(raw: string, type: string): unknown {
 
 export class BulkEditModal extends Modal {
 	private plugin: BasepropPlugin;
-	private selectedFiles: TFile[];
+	private fileSelection: Map<TFile, boolean>;
 	private selectedProperty = "";
 	private rawValue = "";
 	private deselectWhenFinished: boolean;
 	private valueContainerEl: HTMLElement;
+	private countEl: HTMLElement;
 
 	constructor(app: App, plugin: BasepropPlugin) {
 		super(app);
 		this.plugin = plugin;
 		this.deselectWhenFinished = plugin.settings.deselectWhenFinished;
-		this.selectedFiles = getSelectedFiles(app, plugin.settings.selectionProperty);
+		const files = getSelectedFiles(app, plugin.settings.selectionProperty);
+		this.fileSelection = new Map(files.map(f => [f, true]));
 	}
 
 	onOpen() {
@@ -55,16 +57,29 @@ export class BulkEditModal extends Modal {
 
 		new Setting(contentEl).setName("Bulk edit properties").setHeading();
 
-		if (this.selectedFiles.length === 0) {
+		if (this.fileSelection.size === 0) {
 			contentEl.createEl("p", {
 				text: `No files have the "${settings.selectionProperty}" property checked. Mark files by setting their "${settings.selectionProperty}" checkbox property to true.`,
 			});
 			return;
 		}
 
-		contentEl.createEl("p", {
-			text: `${this.selectedFiles.length} file${this.selectedFiles.length === 1 ? "" : "s"} selected`,
-		});
+		this.countEl = contentEl.createEl("p");
+		this.updateCountText();
+
+		const listEl = contentEl.createDiv({cls: "baseprop-file-list"});
+		for (const [file, checked] of this.fileSelection) {
+			const row = listEl.createDiv({cls: "baseprop-file-row"});
+			const checkbox = row.createEl("input", {type: "checkbox"});
+			checkbox.type = "checkbox";
+			checkbox.checked = checked;
+			row.createEl("span", {text: file.path, cls: "baseprop-file-path"});
+			checkbox.addEventListener("change", () => {
+				this.fileSelection.set(file, checkbox.checked);
+				this.updateCountText();
+				void this.persistSelection(file, checkbox.checked);
+			});
+		}
 
 		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
 
@@ -110,6 +125,29 @@ export class BulkEditModal extends Modal {
 
 	onClose() {
 		this.contentEl.empty();
+	}
+
+	private getCheckedFiles(): TFile[] {
+		return [...this.fileSelection.entries()]
+			.filter(([, checked]) => checked)
+			.map(([file]) => file);
+	}
+
+	private updateCountText() {
+		const checked = this.getCheckedFiles().length;
+		const total = this.fileSelection.size;
+		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
+	}
+
+	private async persistSelection(file: TFile, checked: boolean) {
+		const selProp = this.plugin.settings.selectionProperty;
+		try {
+			await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+				fm[selProp] = checked;
+			});
+		} catch {
+			new Notice(`Failed to update selection for ${file.path}`);
+		}
 	}
 
 	private getPropertyType(name: string): string {
@@ -193,10 +231,11 @@ export class BulkEditModal extends Modal {
 		const type = this.getPropertyType(property);
 		const value = coerceValue(this.rawValue, type);
 		const selProp = this.plugin.settings.selectionProperty;
+		const filesToUpdate = this.getCheckedFiles();
 
 		let succeeded = 0;
 		const failed: string[] = [];
-		for (const file of this.selectedFiles) {
+		for (const file of filesToUpdate) {
 			try {
 				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 					fm[property] = value;

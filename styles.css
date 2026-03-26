@@ -11,3 +11,24 @@
 	padding: var(--size-4-1) var(--size-4-2);
 	font-size: var(--font-ui-medium);
 }
+
+.baseprop-file-list {
+	max-height: 200px;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-1);
+	margin-bottom: var(--size-4-4);
+}
+
+.baseprop-file-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) 0;
+}
+
+.baseprop-file-path {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
