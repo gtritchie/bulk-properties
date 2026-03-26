@@ -41,6 +41,7 @@ export class BulkEditModal extends Modal {
 	private deselectWhenFinished: boolean;
 	private valueContainerEl: HTMLElement;
 	private countEl: HTMLElement;
+	private pendingSaves: Map<TFile, Promise<void>> = new Map();
 
 	constructor(app: App, plugin: BasepropPlugin) {
 		super(app);
@@ -75,9 +76,7 @@ export class BulkEditModal extends Modal {
 			checkbox.checked = checked;
 			row.createEl("span", {text: file.path, cls: "baseprop-file-path"});
 			checkbox.addEventListener("change", () => {
-				this.fileSelection.set(file, checkbox.checked);
-				this.updateCountText();
-				void this.persistSelection(file, checkbox.checked);
+				void this.toggleSelection(file, checkbox);
 			});
 		}
 
@@ -139,15 +138,26 @@ export class BulkEditModal extends Modal {
 		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
 	}
 
-	private async persistSelection(file: TFile, checked: boolean) {
-		const selProp = this.plugin.settings.selectionProperty;
-		try {
-			await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				fm[selProp] = checked;
-			});
-		} catch {
-			new Notice(`Failed to update selection for ${file.path}`);
-		}
+	private async toggleSelection(file: TFile, checkbox: HTMLInputElement) {
+		const desired = checkbox.checked;
+		checkbox.disabled = true;
+
+		const previous = this.pendingSaves.get(file) ?? Promise.resolve();
+		const save = previous.then(async () => {
+			const selProp = this.plugin.settings.selectionProperty;
+			try {
+				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+					fm[selProp] = desired;
+				});
+				this.fileSelection.set(file, desired);
+			} catch {
+				checkbox.checked = !desired;
+				new Notice(`Failed to update selection for ${file.path}`);
+			}
+			this.updateCountText();
+			checkbox.disabled = false;
+		});
+		this.pendingSaves.set(file, save);
 	}
 
 	private getPropertyType(name: string): string {
