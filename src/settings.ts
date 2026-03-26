@@ -66,12 +66,8 @@ export class BasepropSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Properties")
+			.setDesc("Configure which properties are available for bulk editing.")
 			.setHeading();
-
-		containerEl.createEl("p", {
-			text: "Configure which properties are available for bulk editing.",
-			cls: "setting-item-description",
-		});
 
 		for (let i = 0; i < this.plugin.settings.properties.length; i++) {
 			const prop = this.plugin.settings.properties[i]!;

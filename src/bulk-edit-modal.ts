@@ -53,7 +53,7 @@ export class BulkEditModal extends Modal {
 		const {settings} = this.plugin;
 		contentEl.addClass("baseprop-modal");
 
-		contentEl.createEl("h2", {text: "Bulk edit properties"});
+		new Setting(contentEl).setName("Bulk edit properties").setHeading();
 
 		if (this.selectedFiles.length === 0) {
 			contentEl.createEl("p", {
