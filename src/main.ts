@@ -1,9 +1,10 @@
 import {Plugin} from "obsidian";
-import {BasepropSettingTab, BasepropSettings, DEFAULT_SETTINGS} from "./settings";
+import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
 import {BulkEditModal} from "./bulk-edit-modal";
+import {deselectAll} from "./deselect-all";
 
-export default class BasepropPlugin extends Plugin {
-	settings: BasepropSettings;
+export default class BulkPropertiesPlugin extends Plugin {
+	settings: BulkPropertiesSettings;
 
 	async onload() {
 		await this.loadSettings();
@@ -16,11 +17,19 @@ export default class BasepropPlugin extends Plugin {
 			},
 		});
 
-		this.addSettingTab(new BasepropSettingTab(this.app, this));
+		this.addCommand({
+			id: "deselect-all",
+			name: "Deselect all files",
+			callback: () => {
+				void deselectAll(this.app, this.settings.selectionProperty);
+			},
+		});
+
+		this.addSettingTab(new BulkPropertiesSettingTab(this.app, this));
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<BasepropSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<BulkPropertiesSettings>);
 	}
 
 	async saveSettings() {

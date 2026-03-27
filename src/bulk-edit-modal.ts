@@ -1,16 +1,6 @@
 import {App, Modal, Notice, Setting, TFile} from "obsidian";
-import type BasepropPlugin from "./main";
-
-function getSelectedFiles(app: App, selectionProperty: string): TFile[] {
-	const files: TFile[] = [];
-	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter?.[selectionProperty] === true) {
-			files.push(file);
-		}
-	}
-	return files.sort((a, b) => a.path.localeCompare(b.path));
-}
+import type BulkPropertiesPlugin from "./main";
+import {getSelectedFiles} from "./files";
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
@@ -34,7 +24,7 @@ function coerceValue(raw: string, type: string): unknown {
 }
 
 export class BulkEditModal extends Modal {
-	private plugin: BasepropPlugin;
+	private plugin: BulkPropertiesPlugin;
 	private fileSelection: Map<TFile, boolean>;
 	private selectedProperty = "";
 	private rawValue = "";
@@ -46,7 +36,7 @@ export class BulkEditModal extends Modal {
 	private updateBtn: HTMLButtonElement;
 	private uiLocked = false;
 
-	constructor(app: App, plugin: BasepropPlugin) {
+	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app);
 		this.plugin = plugin;
 		this.deselectWhenFinished = plugin.settings.deselectWhenFinished;
@@ -57,7 +47,7 @@ export class BulkEditModal extends Modal {
 	onOpen() {
 		const {contentEl} = this;
 		const {settings} = this.plugin;
-		contentEl.addClass("baseprop-modal");
+		contentEl.addClass("bulk-properties-modal");
 
 		new Setting(contentEl).setName("Bulk edit properties").setHeading();
 
@@ -71,14 +61,14 @@ export class BulkEditModal extends Modal {
 		this.countEl = contentEl.createEl("p");
 		this.updateCountText();
 
-		const listEl = contentEl.createDiv({cls: "baseprop-file-list"});
+		const listEl = contentEl.createDiv({cls: "bulk-properties-file-list"});
 		for (const [file, checked] of this.fileSelection) {
-			const row = listEl.createDiv({cls: "baseprop-file-row"});
+			const row = listEl.createDiv({cls: "bulk-properties-file-row"});
 			const checkbox = row.createEl("input", {type: "checkbox"});
 			checkbox.type = "checkbox";
 			checkbox.checked = checked;
 			this.fileCheckboxes.push(checkbox);
-			row.createEl("span", {text: file.path, cls: "baseprop-file-path"});
+			row.createEl("span", {text: file.path, cls: "bulk-properties-file-path"});
 			checkbox.addEventListener("change", () => {
 				void this.toggleSelection(file, checkbox);
 			});
@@ -194,7 +184,7 @@ export class BulkEditModal extends Modal {
 			case "number": {
 				const numInput = document.createElement("input");
 				numInput.type = "number";
-				numInput.className = "baseprop-number-input";
+				numInput.className = "bulk-properties-number-input";
 				numInput.addEventListener("input", () => {
 					this.rawValue = numInput.value;
 				});
@@ -205,7 +195,7 @@ export class BulkEditModal extends Modal {
 			case "date": {
 				const dateInput = document.createElement("input");
 				dateInput.type = "date";
-				dateInput.className = "baseprop-date-input";
+				dateInput.className = "bulk-properties-date-input";
 				dateInput.addEventListener("input", () => {
 					this.rawValue = dateInput.value;
 				});
@@ -216,7 +206,7 @@ export class BulkEditModal extends Modal {
 			case "datetime": {
 				const dtInput = document.createElement("input");
 				dtInput.type = "datetime-local";
-				dtInput.className = "baseprop-date-input";
+				dtInput.className = "bulk-properties-date-input";
 				dtInput.addEventListener("input", () => {
 					this.rawValue = dtInput.value;
 				});
