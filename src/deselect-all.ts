@@ -1,5 +1,6 @@
 import {App, Notice} from "obsidian";
 import {getSelectedFiles} from "./files";
+import {withProgress} from "./progress";
 
 export async function deselectAll(
 	app: App,
@@ -12,47 +13,23 @@ export async function deselectAll(
 		return;
 	}
 
-	let cancelled = false;
-	const notice = new Notice("", 0);
-
-	const cancelBtn = notice.messageEl.createEl("button", {
-		text: "Cancel",
-		cls: "mod-warning bulk-properties-cancel-btn",
-	});
-	cancelBtn.addEventListener("click", () => {
-		cancelled = true;
-	});
-
-	let succeeded = 0;
-	const failed: string[] = [];
-
-	for (let i = 0; i < files.length; i++) {
-		if (cancelled) break;
-		const file = files[i]!;
-
-		notice.setMessage(
-			`Deselecting ${i + 1} / ${files.length}...`,
-		);
-		notice.messageEl.appendChild(cancelBtn);
-
-		try {
+	const result = await withProgress(
+		files,
+		"Deselecting",
+		async (file) => {
 			await app.fileManager.processFrontMatter(
 				file,
 				(fm: Record<string, unknown>) => {
 					fm[selectionProperty] = false;
 				},
 			);
-			succeeded++;
-		} catch {
-			failed.push(file.path);
-		}
-	}
+		},
+	);
 
-	notice.hide();
-
+	const {succeeded, failed, cancelled, total} = result;
 	if (cancelled) {
 		new Notice(
-			`Deselected ${succeeded} of ${files.length} file${files.length === 1 ? "" : "s"} (cancelled)`,
+			`Deselected ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
 		);
 	} else if (failed.length === 0) {
 		new Notice(

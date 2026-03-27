@@ -1,15 +1,6 @@
 import {App, Modal, Notice, Setting} from "obsidian";
-
-function getFilesWithProperty(app: App, property: string) {
-	const files = [];
-	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter && Object.prototype.hasOwnProperty.call(cache.frontmatter, property)) {
-			files.push(file);
-		}
-	}
-	return files.sort((a, b) => a.path.localeCompare(b.path));
-}
+import {getFilesWithProperty} from "./files";
+import {withProgress} from "./progress";
 
 class ConfirmRemoveModal extends Modal {
 	private confirmed = false;
@@ -62,6 +53,11 @@ class ConfirmRemoveModal extends Modal {
 	}
 }
 
+/**
+ * Scans for files containing the selection property, confirms with
+ * the user, then removes the property from all matching files with
+ * a cancelable progress notice.
+ */
 export function removeSelectionProperty(
 	app: App,
 	selectionProperty: string,
@@ -76,7 +72,17 @@ export function removeSelectionProperty(
 	}
 
 	new ConfirmRemoveModal(app, selectionProperty, files.length, () => {
-		void doRemove(app, selectionProperty, files);
+		void doRemove(app, selectionProperty, files).catch(
+			(err: unknown) => {
+				console.error(
+					"bulk-properties: unexpected error during property removal:",
+					err,
+				);
+				new Notice(
+					"An unexpected error occurred. Check the developer console.",
+				);
+			},
+		);
 	}).open();
 }
 
@@ -85,47 +91,23 @@ async function doRemove(
 	selectionProperty: string,
 	files: ReturnType<typeof getFilesWithProperty>,
 ): Promise<void> {
-	let cancelled = false;
-	const notice = new Notice("", 0);
-
-	const cancelBtn = notice.messageEl.createEl("button", {
-		text: "Cancel",
-		cls: "mod-warning bulk-properties-cancel-btn",
-	});
-	cancelBtn.addEventListener("click", () => {
-		cancelled = true;
-	});
-
-	let succeeded = 0;
-	const failed: string[] = [];
-
-	for (let i = 0; i < files.length; i++) {
-		if (cancelled) break;
-		const file = files[i]!;
-
-		notice.setMessage(
-			`Removing "${selectionProperty}" ${i + 1} / ${files.length}...`,
-		);
-		notice.messageEl.appendChild(cancelBtn);
-
-		try {
+	const result = await withProgress(
+		files,
+		`Removing "${selectionProperty}"`,
+		async (file) => {
 			await app.fileManager.processFrontMatter(
 				file,
 				(fm: Record<string, unknown>) => {
 					delete fm[selectionProperty];
 				},
 			);
-			succeeded++;
-		} catch {
-			failed.push(file.path);
-		}
-	}
+		},
+	);
 
-	notice.hide();
-
+	const {succeeded, failed, cancelled, total} = result;
 	if (cancelled) {
 		new Notice(
-			`Removed "${selectionProperty}" from ${succeeded} of ${files.length} file${files.length === 1 ? "" : "s"} (cancelled)`,
+			`Removed "${selectionProperty}" from ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
 		);
 	} else if (failed.length === 0) {
 		new Notice(
