@@ -147,7 +147,8 @@ export class BulkEditModal extends Modal {
 					fm[selProp] = desired;
 				});
 				this.fileSelection.set(file, desired);
-			} catch {
+			} catch (err: unknown) {
+				console.error(`bulk-properties: failed to toggle selection for ${file.path}:`, err);
 				checkbox.checked = !desired;
 				new Notice(`Failed to update selection for ${file.path}`);
 			}
@@ -264,7 +265,8 @@ export class BulkEditModal extends Modal {
 					}
 				});
 				succeeded++;
-			} catch {
+			} catch (err: unknown) {
+				console.error(`bulk-properties: failed to update ${file.path}:`, err);
 				failed.push(file.path);
 			}
 		}
