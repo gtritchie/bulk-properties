@@ -1,6 +1,7 @@
 import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getSelectedFiles} from "./files";
+import {confirmEmptyValue} from "./confirm-modal";
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
@@ -250,9 +251,19 @@ export class BulkEditModal extends Modal {
 
 		const property = this.selectedProperty;
 		const type = this.getPropertyType(property);
+		const filesToUpdate = this.getCheckedFiles();
+
+		if (type !== "checkbox" && this.rawValue.trim() === "") {
+			const confirmed = await confirmEmptyValue(this.app, property, filesToUpdate.length);
+			if (!confirmed) {
+				this.uiLocked = false;
+				this.setUIEnabled(true);
+				return;
+			}
+		}
+
 		const value = coerceValue(this.rawValue, type);
 		const selProp = this.plugin.settings.selectionProperty;
-		const filesToUpdate = this.getCheckedFiles();
 
 		let succeeded = 0;
 		const failed: string[] = [];
