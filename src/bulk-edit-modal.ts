@@ -83,7 +83,9 @@ export class BulkEditModal extends Modal {
 			return;
 		}
 
-		this.selectedProperty = editableProperties[0]?.name ?? "";
+		const lastSelected = settings.lastSelectedProperty;
+		const rememberedExists = lastSelected && editableProperties.some(p => p.name === lastSelected);
+		this.selectedProperty = rememberedExists ? lastSelected : editableProperties[0]?.name ?? "";
 
 		new Setting(contentEl)
 			.setName("Property")
@@ -266,6 +268,9 @@ export class BulkEditModal extends Modal {
 		const value = coerceValue(this.rawValue, type);
 		const selProp = this.plugin.settings.selectionProperty;
 		const deselect = this.deselectWhenFinished;
+
+		this.plugin.settings.lastSelectedProperty = property;
+		await this.plugin.saveSettings();
 
 		this.close();
 
