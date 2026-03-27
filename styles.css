@@ -32,3 +32,7 @@
 	font-size: var(--font-ui-small);
 	color: var(--text-normal);
 }
+
+.bulk-properties-cancel-btn {
+	margin-left: var(--size-4-2);
+}

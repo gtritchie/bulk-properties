@@ -1,16 +1,6 @@
 import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
-
-function getSelectedFiles(app: App, selectionProperty: string): TFile[] {
-	const files: TFile[] = [];
-	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter?.[selectionProperty] === true) {
-			files.push(file);
-		}
-	}
-	return files.sort((a, b) => a.path.localeCompare(b.path));
-}
+import {getSelectedFiles} from "./files";
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
