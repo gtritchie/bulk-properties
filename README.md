@@ -15,6 +15,12 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 5. Choose a property from the dropdown, enter the new value, and click **Update**.
 6. Optionally enable **Deselect when finished** to uncheck all files after the update.
 
+## Commands
+
+- **Bulk edit selected files** — opens the bulk edit dialog showing all files with the selection property checked.
+- **Deselect all files** — unchecks the selection property on every file in the vault that has it checked.
+- **Remove selection property from all files** — removes the selection property entirely from every file in the vault that has it.
+
 ## Setup
 
 Before using the command, configure the plugin in Settings → Bulk Properties:
