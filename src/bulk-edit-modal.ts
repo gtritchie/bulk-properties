@@ -153,6 +153,9 @@ export class BulkEditModal extends Modal {
 		const checked = this.getCheckedFiles().length;
 		const total = this.fileSelection.size;
 		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
+		if (this.updateBtn && !this.uiLocked) {
+			this.updateBtn.disabled = checked === 0;
+		}
 	}
 
 	private async writeSelection(file: TFile, selected: boolean): Promise<void> {
