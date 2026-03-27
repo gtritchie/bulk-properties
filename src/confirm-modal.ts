@@ -40,9 +40,19 @@ class ConfirmModal extends Modal {
 	}
 }
 
-export function confirmEmptyValue(app: App, property: string, fileCount: number): Promise<boolean> {
+const LIST_TYPES = new Set(["tags", "aliases", "multitext"]);
+
+export function confirmEmptyValue(
+	app: App,
+	property: string,
+	type: string,
+	fileCount: number,
+): Promise<boolean> {
 	const noun = fileCount === 1 ? "file" : "files";
-	const message = `New value is blank. This will set "${property}" to blank on ${fileCount} ${noun}.`;
+	const effect = LIST_TYPES.has(type)
+		? `remove all values from "${property}"`
+		: `set "${property}" to blank`;
+	const message = `New value is empty. This will ${effect} on ${fileCount} ${noun}.`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve).open();
 	});

@@ -254,7 +254,7 @@ export class BulkEditModal extends Modal {
 		const filesToUpdate = this.getCheckedFiles();
 
 		if (type !== "checkbox" && this.rawValue.trim() === "") {
-			const confirmed = await confirmEmptyValue(this.app, property, filesToUpdate.length);
+			const confirmed = await confirmEmptyValue(this.app, property, type, filesToUpdate.length);
 			if (!confirmed) {
 				this.uiLocked = false;
 				this.setUIEnabled(true);
