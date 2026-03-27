@@ -2,6 +2,7 @@ import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
+import {withProgress} from "./progress";
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
@@ -264,29 +265,39 @@ export class BulkEditModal extends Modal {
 
 		const value = coerceValue(this.rawValue, type);
 		const selProp = this.plugin.settings.selectionProperty;
+		const deselect = this.deselectWhenFinished;
 
-		let succeeded = 0;
-		const failed: string[] = [];
-		for (const file of filesToUpdate) {
-			try {
-				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-					fm[property] = value;
-					if (this.deselectWhenFinished) {
-						fm[selProp] = false;
-					}
-				});
-				succeeded++;
-			} catch (err: unknown) {
-				console.error(`bulk-properties: failed to update ${file.path}:`, err);
-				failed.push(file.path);
-			}
-		}
-
-		if (failed.length === 0) {
-			new Notice(`Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`);
-		} else {
-			new Notice(`Updated ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`);
-		}
 		this.close();
+
+		const result = await withProgress(
+			filesToUpdate,
+			"Updating",
+			async (file) => {
+				await this.app.fileManager.processFrontMatter(
+					file,
+					(fm: Record<string, unknown>) => {
+						fm[property] = value;
+						if (deselect) {
+							fm[selProp] = false;
+						}
+					},
+				);
+			},
+		);
+
+		const {succeeded, failed, cancelled, total} = result;
+		if (cancelled) {
+			new Notice(
+				`Updated "${property}" in ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
+			);
+		} else if (failed.length === 0) {
+			new Notice(
+				`Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`,
+			);
+		} else {
+			new Notice(
+				`Updated ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
+			);
+		}
 	}
 }
