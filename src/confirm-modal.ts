@@ -42,7 +42,7 @@ class ConfirmModal extends Modal {
 
 export function confirmEmptyValue(app: App, property: string, fileCount: number): Promise<boolean> {
 	const noun = fileCount === 1 ? "file" : "files";
-	const message = `New value is blank. This will clear "${property}" on ${fileCount} ${noun}.`;
+	const message = `New value is blank. This will set "${property}" to blank on ${fileCount} ${noun}.`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve).open();
 	});
