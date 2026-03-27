@@ -4,7 +4,7 @@ function getFilesWithProperty(app: App, property: string) {
 	const files = [];
 	for (const file of app.vault.getMarkdownFiles()) {
 		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter && property in cache.frontmatter) {
+		if (cache?.frontmatter && Object.prototype.hasOwnProperty.call(cache.frontmatter, property)) {
 			files.push(file);
 		}
 	}
