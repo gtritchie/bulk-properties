@@ -1,9 +1,9 @@
 {
 	"id": "baseprop",
-	"name": "Bulk Property Editor for Bases",
+	"name": "Bulk Properties",
 	"version": "1.0.0",
 	"minAppVersion": "1.4.10",
-	"description": "Select files in a Base via a checkbox property and bulk edit any property across all selected files.",
+	"description": "Bulk edit properties across multiple files in your vault using a checkbox property for selection.",
 	"author": "Gary",
 	"authorUrl": "",
 	"isDesktopOnly": false

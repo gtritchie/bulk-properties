@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-baseprop",
 	"version": "1.0.0",
-	"description": "Bulk property editor for Obsidian Bases",
+	"description": "Bulk edit properties across multiple files in your vault",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
