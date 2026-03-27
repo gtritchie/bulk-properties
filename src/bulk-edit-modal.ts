@@ -298,9 +298,9 @@ export class BulkEditModal extends Modal {
 		for (const cb of this.fileCheckboxes.values()) {
 			cb.disabled = !enabled;
 		}
-		this.selectAllBtn.disabled = !enabled;
-		this.deselectAllBtn.disabled = !enabled;
-		this.updateBtn.disabled = !enabled;
+		if (this.selectAllBtn) this.selectAllBtn.disabled = !enabled;
+		if (this.deselectAllBtn) this.deselectAllBtn.disabled = !enabled;
+		if (this.updateBtn) this.updateBtn.disabled = !enabled;
 	}
 
 	private async doUpdate() {
