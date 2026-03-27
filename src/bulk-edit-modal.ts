@@ -286,18 +286,13 @@ export class BulkEditModal extends Modal {
 		);
 
 		const {succeeded, failed, cancelled, total} = result;
+		let msg = `Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`;
 		if (cancelled) {
-			new Notice(
-				`Updated "${property}" in ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
-			);
-		} else if (failed.length === 0) {
-			new Notice(
-				`Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`,
-			);
-		} else {
-			new Notice(
-				`Updated ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
-			);
+			msg = `Updated "${property}" in ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
 		}
+		if (failed.length > 0) {
+			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
+		}
+		new Notice(msg);
 	}
 }
