@@ -54,12 +54,14 @@ export interface BulkPropertiesSettings {
 	deselectWhenFinished: boolean;
 	selectionProperty: string;
 	properties: PropertyConfig[];
+	lastSelectedProperty: string;
 }
 
 export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 	deselectWhenFinished: true,
 	selectionProperty: "selected",
 	properties: [],
+	lastSelectedProperty: "",
 };
 
 export class BulkPropertiesSettingTab extends PluginSettingTab {
