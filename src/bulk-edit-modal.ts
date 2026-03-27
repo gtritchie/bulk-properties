@@ -303,7 +303,9 @@ export class BulkEditModal extends Modal {
 		}
 		if (this.selectAllBtn) this.selectAllBtn.disabled = !enabled;
 		if (this.deselectAllBtn) this.deselectAllBtn.disabled = !enabled;
-		if (this.updateBtn) this.updateBtn.disabled = !enabled;
+		if (this.updateBtn) {
+			this.updateBtn.disabled = !enabled || this.getCheckedFiles().length === 0;
+		}
 	}
 
 	private async doUpdate() {
