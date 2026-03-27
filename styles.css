@@ -1,9 +1,9 @@
-.baseprop-modal {
+.bulk-properties-modal {
 	max-width: 500px;
 }
 
-.baseprop-date-input,
-.baseprop-number-input {
+.bulk-properties-date-input,
+.bulk-properties-number-input {
 	background: var(--background-modifier-form-field);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--input-radius);
@@ -12,7 +12,7 @@
 	font-size: var(--font-ui-medium);
 }
 
-.baseprop-file-list {
+.bulk-properties-file-list {
 	max-height: 200px;
 	overflow-y: auto;
 	border: 1px solid var(--background-modifier-border);
@@ -21,14 +21,14 @@
 	margin-bottom: var(--size-4-4);
 }
 
-.baseprop-file-row {
+.bulk-properties-file-row {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
 	padding: var(--size-2-1) 0;
 }
 
-.baseprop-file-path {
+.bulk-properties-file-path {
 	font-size: var(--font-ui-small);
 	color: var(--text-normal);
 }

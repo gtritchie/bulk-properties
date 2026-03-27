@@ -1,5 +1,5 @@
 import {AbstractInputSuggest, App, PluginSettingTab, Setting} from "obsidian";
-import type BasepropPlugin from "./main";
+import type BulkPropertiesPlugin from "./main";
 
 function getAllPropertyNames(app: App): string[] {
 	const names = new Set<string>();
@@ -50,22 +50,22 @@ export interface PropertyConfig {
 	type: PropertyType;
 }
 
-export interface BasepropSettings {
+export interface BulkPropertiesSettings {
 	deselectWhenFinished: boolean;
 	selectionProperty: string;
 	properties: PropertyConfig[];
 }
 
-export const DEFAULT_SETTINGS: BasepropSettings = {
+export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 	deselectWhenFinished: true,
 	selectionProperty: "selected",
 	properties: [],
 };
 
-export class BasepropSettingTab extends PluginSettingTab {
-	plugin: BasepropPlugin;
+export class BulkPropertiesSettingTab extends PluginSettingTab {
+	plugin: BulkPropertiesPlugin;
 
-	constructor(app: App, plugin: BasepropPlugin) {
+	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -150,6 +150,6 @@ export class BasepropSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 					this.display();
 				}));
-		addSetting.settingEl.addClass("baseprop-add-property");
+		addSetting.settingEl.addClass("bulk-properties-add-property");
 	}
 }

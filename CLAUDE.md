@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Obsidian community plugin (TypeScript). Currently based on the sample plugin template — rename classes/interfaces before release. The plugin lives inside a vault at `.obsidian/plugins/baseprop/`.
+Obsidian community plugin (TypeScript) for bulk editing frontmatter properties. Lives inside a vault at `.obsidian/plugins/bulk-properties/`.
 
 ## Commands
 
@@ -19,7 +19,7 @@ npm version patch    # Bump version in manifest.json, package.json, versions.jso
 ## Architecture
 
 - **Entry point:** `src/main.ts` → bundled to `main.js` (CJS format) by esbuild
-- **Settings:** `src/settings.ts` — `MyPluginSettings` interface, defaults, and `SampleSettingTab`
+- **Settings:** `src/settings.ts` — `BulkPropertiesSettings` interface, defaults, and `BulkPropertiesSettingTab`
 - **Build:** `esbuild.config.mjs` — bundles all source into single `main.js`, externalizes `obsidian`, `electron`, CodeMirror, and Lezer packages (provided by Obsidian at runtime)
 - **Lint:** `eslint.config.mts` — uses `typescript-eslint` + `eslint-plugin-obsidianmd` recommended rules (requires `jiti` for `.mts` config)
 - **Release artifacts:** `main.js`, `manifest.json`, `styles.css` at repo root
