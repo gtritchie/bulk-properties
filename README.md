@@ -25,4 +25,4 @@ Before using the command, configure the plugin in Settings → Bulk Properties:
 
 ## Installing
 
-Copy `main.js`, `styles.css`, and `manifest.json` to your vault at `.obsidian/plugins/baseprop/`.
+Copy `main.js`, `styles.css`, and `manifest.json` to your vault at `.obsidian/plugins/bulk-properties/`.
