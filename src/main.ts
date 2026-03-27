@@ -2,6 +2,7 @@ import {Plugin} from "obsidian";
 import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
 import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
+import {removeSelectionProperty} from "./remove-selection-property";
 
 export default class BulkPropertiesPlugin extends Plugin {
 	settings: BulkPropertiesSettings;
@@ -22,6 +23,17 @@ export default class BulkPropertiesPlugin extends Plugin {
 			name: "Deselect all files",
 			callback: () => {
 				void deselectAll(this.app, this.settings.selectionProperty);
+			},
+		});
+
+		this.addCommand({
+			id: "remove-selection-property",
+			name: "Remove selection property from all files",
+			callback: () => {
+				removeSelectionProperty(
+					this.app,
+					this.settings.selectionProperty,
+				);
 			},
 		});
 
