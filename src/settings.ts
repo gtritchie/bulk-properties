@@ -117,18 +117,15 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					}));
 		}
 
-		let newName = "";
+		let nameInputEl: HTMLInputElement;
 		let newType: PropertyType = "text";
 
 		const addSetting = new Setting(containerEl)
 			.setName("Add property")
 			.addSearch(search => {
-				search
-					.setPlaceholder("Property name")
-					.onChange(value => {
-						newName = value.trim();
-					});
-				new PropertyNameSuggest(this.app, search.inputEl);
+				search.setPlaceholder("Property name");
+				nameInputEl = search.inputEl;
+				new PropertyNameSuggest(this.app, nameInputEl);
 			})
 			.addDropdown(dropdown => {
 				for (const t of PROPERTY_TYPES) {
@@ -143,6 +140,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				.setButtonText("Add")
 				.setCta()
 				.onClick(async () => {
+					const newName = nameInputEl.value.trim();
 					if (!newName) return;
 					const exists = this.plugin.settings.properties.some(p => p.name === newName);
 					if (exists) return;
