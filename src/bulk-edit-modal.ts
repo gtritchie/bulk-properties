@@ -34,8 +34,10 @@ export class BulkEditModal extends Modal {
 	private valueContainerEl: HTMLElement;
 	private countEl: HTMLElement;
 	private pendingSaves: Map<TFile, Promise<void>> = new Map();
-	private fileCheckboxes: HTMLInputElement[] = [];
+	private fileCheckboxes: Map<TFile, HTMLInputElement> = new Map();
 	private updateBtn: HTMLButtonElement;
+	private selectAllBtn: HTMLButtonElement;
+	private deselectAllBtn: HTMLButtonElement;
 	private uiLocked = false;
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
@@ -69,12 +71,26 @@ export class BulkEditModal extends Modal {
 			const checkbox = row.createEl("input", {type: "checkbox"});
 			checkbox.type = "checkbox";
 			checkbox.checked = checked;
-			this.fileCheckboxes.push(checkbox);
+			this.fileCheckboxes.set(file, checkbox);
 			row.createEl("span", {text: file.path, cls: "bulk-properties-file-path"});
 			checkbox.addEventListener("change", () => {
 				void this.toggleSelection(file, checkbox);
 			});
 		}
+
+		new Setting(contentEl)
+			.addButton(btn => {
+				btn.setButtonText("Select all").onClick(() => {
+					void this.bulkSetSelection(true);
+				});
+				this.selectAllBtn = btn.buttonEl;
+			})
+			.addButton(btn => {
+				btn.setButtonText("Deselect all").onClick(() => {
+					void this.bulkSetSelection(false);
+				});
+				this.deselectAllBtn = btn.buttonEl;
+			});
 
 		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
 
@@ -139,18 +155,22 @@ export class BulkEditModal extends Modal {
 		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
 	}
 
+	private async writeSelection(file: TFile, selected: boolean): Promise<void> {
+		const selProp = this.plugin.settings.selectionProperty;
+		await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			fm[selProp] = selected;
+		});
+		this.fileSelection.set(file, selected);
+	}
+
 	private async toggleSelection(file: TFile, checkbox: HTMLInputElement) {
 		const desired = checkbox.checked;
 		checkbox.disabled = true;
 
 		const previous = this.pendingSaves.get(file) ?? Promise.resolve();
 		const save = previous.then(async () => {
-			const selProp = this.plugin.settings.selectionProperty;
 			try {
-				await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-					fm[selProp] = desired;
-				});
-				this.fileSelection.set(file, desired);
+				await this.writeSelection(file, desired);
 			} catch (err: unknown) {
 				console.error(`bulk-properties: failed to toggle selection for ${file.path}:`, err);
 				checkbox.checked = !desired;
@@ -162,6 +182,40 @@ export class BulkEditModal extends Modal {
 			}
 		});
 		this.pendingSaves.set(file, save);
+	}
+
+	private async bulkSetSelection(selected: boolean) {
+		this.uiLocked = true;
+		this.setUIEnabled(false);
+		try {
+			await Promise.all(this.pendingSaves.values());
+
+			const filesToChange = [...this.fileSelection.entries()]
+				.filter(([, current]) => current !== selected)
+				.map(([file]) => file);
+
+			const failed: string[] = [];
+			await Promise.all(filesToChange.map(async (file) => {
+				try {
+					await this.writeSelection(file, selected);
+					const checkbox = this.fileCheckboxes.get(file);
+					if (checkbox) {
+						checkbox.checked = selected;
+					}
+				} catch (err: unknown) {
+					console.error(`bulk-properties: failed to set selection for ${file.path}:`, err);
+					failed.push(file.path);
+				}
+			}));
+
+			this.updateCountText();
+			if (failed.length > 0) {
+				new Notice(`Failed to update selection for ${failed.length} file${failed.length === 1 ? "" : "s"}: ${failed.join(", ")}`);
+			}
+		} finally {
+			this.uiLocked = false;
+			this.setUIEnabled(true);
+		}
 	}
 
 	private getPropertyType(name: string): string {
@@ -241,9 +295,11 @@ export class BulkEditModal extends Modal {
 	}
 
 	private setUIEnabled(enabled: boolean) {
-		for (const cb of this.fileCheckboxes) {
+		for (const cb of this.fileCheckboxes.values()) {
 			cb.disabled = !enabled;
 		}
+		this.selectAllBtn.disabled = !enabled;
+		this.deselectAllBtn.disabled = !enabled;
 		this.updateBtn.disabled = !enabled;
 	}
 
@@ -270,7 +326,11 @@ export class BulkEditModal extends Modal {
 		const deselect = this.deselectWhenFinished;
 
 		this.plugin.settings.lastSelectedProperty = property;
-		await this.plugin.saveSettings();
+		try {
+			await this.plugin.saveSettings();
+		} catch (err: unknown) {
+			console.warn("bulk-properties: failed to save lastSelectedProperty:", err);
+		}
 
 		this.close();
 
