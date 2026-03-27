@@ -26,11 +26,12 @@ export async function deselectAll(
 	let succeeded = 0;
 	const failed: string[] = [];
 
-	for (const file of files) {
+	for (let i = 0; i < files.length; i++) {
 		if (cancelled) break;
+		const file = files[i]!;
 
 		notice.setMessage(
-			`Deselecting ${succeeded + 1} / ${files.length}...`,
+			`Deselecting ${i + 1} / ${files.length}...`,
 		);
 		notice.messageEl.appendChild(cancelBtn);
 
