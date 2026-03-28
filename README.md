@@ -10,7 +10,7 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 
 1. Add a checkbox property (such as `selected`) to your notes or Base view.
 2. Check the box on each file you want to bulk edit.
-3. Run the command **Bulk edit selected files** from the command palette.
+3. Open the bulk edit dialog from the ribbon icon or the **Bulk edit selected files** command.
 4. Review the file checklist — uncheck any files you don't want to modify, or re-check files you do.
 5. Choose a property from the dropdown, enter the new value, and select **Update**.
 6. Optionally enable **Deselect when finished** to uncheck all files after the update.

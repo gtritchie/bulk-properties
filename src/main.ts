@@ -14,6 +14,10 @@ export default class BulkPropertiesPlugin extends Plugin {
 
 		this.statusBarEl = this.addStatusBarItem();
 
+		this.addRibbonIcon("list-checks", "Bulk edit selected files", () => {
+			new BulkEditModal(this.app, this).open();
+		});
+
 		this.addCommand({
 			id: "bulk-edit-selected",
 			name: "Bulk edit selected files",
