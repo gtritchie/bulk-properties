@@ -13,7 +13,7 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 3. Open the bulk edit dialog from the ribbon icon, the **Bulk edit selected files** command, or the editor right-click menu.
 4. Review the file checklist — uncheck any files you don't want to modify, or re-check files you do.
 5. Choose a property from the dropdown, enter the new value, and select **Update**.
-6. Optionally enable **Deselect when finished** to uncheck all files after the update.
+6. Optionally disable **Deselect when finished** to keep the files selected after the update.
 
 ## Commands
 
