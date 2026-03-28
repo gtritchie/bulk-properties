@@ -1,11 +1,5 @@
 # How to release
 
-## Prerequisites
-
-In the GitHub repo settings, go to **Settings → Actions → General → Workflow permissions** and select **Read and write permissions**.
-
-This only needs to be done once.
-
 ## Steps
 
 1. **Make sure you're on `main` with a clean working tree.**
