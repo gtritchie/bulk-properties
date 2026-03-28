@@ -159,7 +159,15 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Properties")
-			.setDesc("Configure which properties are available for bulk editing. You must add at least one property to use the bulk-editing feature.")
+			.then(setting => {
+					setting.descEl.empty();
+					setting.descEl.appendText(
+						"Configure which properties are available for bulk editing. ",
+					);
+					setting.descEl.createEl("em", {
+						text: "You must add at least one property to use the bulk-editing feature.",
+					});
+				})
 			.setHeading();
 
 		for (let i = 0; i < this.plugin.settings.properties.length; i++) {
