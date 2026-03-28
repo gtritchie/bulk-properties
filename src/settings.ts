@@ -88,6 +88,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.selectionProperty = value.trim() || "selected";
 						await this.plugin.saveSettings();
+						this.plugin.updateStatusBar();
 					});
 				new PropertyNameSuggest(this.app, search.inputEl);
 			});

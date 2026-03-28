@@ -49,6 +49,12 @@ export default class BulkPropertiesPlugin extends Plugin {
 			}),
 		);
 
+		this.registerEvent(
+			this.app.vault.on("delete", () => {
+				this.updateStatusBar();
+			}),
+		);
+
 		this.app.workspace.onLayoutReady(() => {
 			this.updateStatusBar();
 		});
