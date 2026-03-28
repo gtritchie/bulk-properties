@@ -3,7 +3,7 @@
 	"name": "Bulk Properties",
 	"version": "1.0.0",
 	"minAppVersion": "1.4.10",
-	"description": "Bulk edit properties across multiple files in your vault using a checkbox property for selection.",
+	"description": "Edit properties across multiple files at once, using a checkbox property to select which files to update.",
 	"author": "Gary",
 	"authorUrl": "",
 	"isDesktopOnly": false
