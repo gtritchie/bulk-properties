@@ -6,8 +6,14 @@ import {withProgress} from "./progress";
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
-		case "number":
-			return raw === "" ? null : Number(raw);
+		case "number": {
+			if (raw === "") return null;
+			const n = Number(raw);
+			if (isNaN(n)) {
+				throw new Error(`Invalid number: "${raw}"`);
+			}
+			return n;
+		}
 		case "checkbox":
 			return raw === "true";
 		case "date":
@@ -31,13 +37,13 @@ export class BulkEditModal extends Modal {
 	private selectedProperty = "";
 	private rawValue = "";
 	private deselectWhenFinished: boolean;
-	private valueContainerEl: HTMLElement;
-	private countEl: HTMLElement;
+	private valueContainerEl!: HTMLElement;
+	private countEl!: HTMLElement;
 	private pendingSaves: Map<TFile, Promise<void>> = new Map();
 	private fileCheckboxes: Map<TFile, HTMLInputElement> = new Map();
-	private updateBtn: HTMLButtonElement;
-	private selectAllBtn: HTMLButtonElement;
-	private deselectAllBtn: HTMLButtonElement;
+	private updateBtn!: HTMLButtonElement;
+	private selectAllBtn!: HTMLButtonElement;
+	private deselectAllBtn!: HTMLButtonElement;
 	private uiLocked = false;
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
@@ -48,7 +54,7 @@ export class BulkEditModal extends Modal {
 		this.fileSelection = new Map(files.map(f => [f, true]));
 	}
 
-	onOpen() {
+	override onOpen() {
 		const {contentEl} = this;
 		const {settings} = this.plugin;
 		contentEl.addClass("bulk-properties-modal");
@@ -139,7 +145,7 @@ export class BulkEditModal extends Modal {
 			});
 	}
 
-	onClose() {
+	override onClose() {
 		this.contentEl.empty();
 	}
 
@@ -326,7 +332,17 @@ export class BulkEditModal extends Modal {
 			}
 		}
 
-		const value = coerceValue(this.rawValue, type);
+		let value: unknown;
+		try {
+			value = coerceValue(this.rawValue, type);
+		} catch (err: unknown) {
+			this.uiLocked = false;
+			this.setUIEnabled(true);
+			const msg = err instanceof Error ? err.message : String(err);
+			new Notice(msg);
+			return;
+		}
+
 		const selProp = this.plugin.settings.selectionProperty;
 		const deselect = this.deselectWhenFinished;
 

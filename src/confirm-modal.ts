@@ -11,7 +11,7 @@ class ConfirmModal extends Modal {
 		this.resolve = resolve;
 	}
 
-	onOpen() {
+	override onOpen() {
 		const {contentEl} = this;
 		contentEl.createEl("p", {text: this.message});
 		new Setting(contentEl)
@@ -32,7 +32,7 @@ class ConfirmModal extends Modal {
 				}));
 	}
 
-	onClose() {
+	override onClose() {
 		if (!this.resolved) {
 			this.resolve(false);
 		}

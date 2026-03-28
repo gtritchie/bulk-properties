@@ -1,4 +1,4 @@
-import {AbstractInputSuggest, App, PluginSettingTab, Setting} from "obsidian";
+import {AbstractInputSuggest, App, Notice, PluginSettingTab, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 
 function getAllPropertyNames(app: App): string[] {
@@ -17,16 +17,16 @@ function getAllPropertyNames(app: App): string[] {
 }
 
 class PropertyNameSuggest extends AbstractInputSuggest<string> {
-	getSuggestions(query: string): string[] {
+	override getSuggestions(query: string): string[] {
 		const lower = query.toLowerCase();
 		return getAllPropertyNames(this.app).filter(name => name.toLowerCase().includes(lower));
 	}
 
-	renderSuggestion(value: string, el: HTMLElement): void {
+	override renderSuggestion(value: string, el: HTMLElement): void {
 		el.setText(value);
 	}
 
-	selectSuggestion(value: string): void {
+	override selectSuggestion(value: string): void {
 		this.setValue(value);
 		this.close();
 	}
@@ -68,10 +68,36 @@ export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 
 export class BulkPropertiesSettingTab extends PluginSettingTab {
 	plugin: BulkPropertiesPlugin;
+	private saveQueue: Promise<void> = Promise.resolve();
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	/**
+	 * Serializes settings writes through a queue so overlapping
+	 * onChange calls cannot race. Each call snapshots the live
+	 * settings only after all prior saves have committed.
+	 */
+	private updateSetting<K extends keyof BulkPropertiesSettings>(
+		key: K,
+		value: BulkPropertiesSettings[K],
+	): Promise<boolean> {
+		const result = this.saveQueue.then(async () => {
+			const candidate = {...this.plugin.settings, [key]: value};
+			try {
+				await this.plugin.saveData(candidate);
+				this.plugin.settings = candidate;
+				return true;
+			} catch (err: unknown) {
+				console.error("bulk-properties: failed to save settings:", err);
+				new Notice("Failed to save settings. Check disk space and permissions.");
+				return false;
+			}
+		});
+		this.saveQueue = result.then(() => {});
+		return result;
 	}
 
 	display(): void {
@@ -86,9 +112,21 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.setPlaceholder("Selected")
 					.setValue(this.plugin.settings.selectionProperty)
 					.onChange(async (value) => {
-						this.plugin.settings.selectionProperty = value.trim() || "selected";
-						await this.plugin.saveSettings();
-						this.plugin.updateStatusBar();
+						const normalized = value.trim() || "selected";
+						if (normalized === this.plugin.settings.selectionProperty) {
+							if (value.trim() === "") {
+								search.setValue(normalized);
+							}
+							return;
+						}
+						if (await this.updateSetting("selectionProperty", normalized)) {
+							// Only reset the input if the user hasn't typed
+							// something new while the save was in flight
+							if (search.inputEl.value === value) {
+								search.setValue(normalized);
+							}
+							this.plugin.updateStatusBar();
+						}
 					});
 				new PropertyNameSuggest(this.app, search.inputEl);
 			});
@@ -99,8 +137,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.deselectWhenFinished)
 				.onChange(async (value) => {
-					this.plugin.settings.deselectWhenFinished = value;
-					await this.plugin.saveSettings();
+					await this.updateSetting("deselectWhenFinished", value);
 				}));
 
 		new Setting(containerEl)
@@ -109,9 +146,9 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showStatusBarCount)
 				.onChange(async (value) => {
-					this.plugin.settings.showStatusBarCount = value;
-					await this.plugin.saveSettings();
-					this.plugin.updateStatusBar();
+					if (await this.updateSetting("showStatusBarCount", value)) {
+						this.plugin.updateStatusBar();
+					}
 				}));
 
 		new Setting(containerEl)
@@ -127,9 +164,12 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				.addButton(btn => btn
 					.setButtonText("Remove")
 					.onClick(async () => {
-						this.plugin.settings.properties.splice(i, 1);
-						await this.plugin.saveSettings();
-						this.display();
+						const updated = this.plugin.settings.properties.filter(
+							(_, idx) => idx !== i,
+						);
+						if (await this.updateSetting("properties", updated)) {
+							this.display();
+						}
 					}));
 		}
 
@@ -157,12 +197,21 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				.setCta()
 				.onClick(async () => {
 					const newName = nameInputEl.value.trim();
-					if (!newName) return;
-					const exists = this.plugin.settings.properties.some(p => p.name === newName);
-					if (exists) return;
-					this.plugin.settings.properties.push({name: newName, type: newType});
-					await this.plugin.saveSettings();
-					this.display();
+					if (!newName) {
+						new Notice("Enter a property name");
+						return;
+					}
+					if (this.plugin.settings.properties.some(p => p.name === newName)) {
+						new Notice(`Property "${newName}" is already configured`);
+						return;
+					}
+					const updated = [
+						...this.plugin.settings.properties,
+						{name: newName, type: newType},
+					];
+					if (await this.updateSetting("properties", updated)) {
+						this.display();
+					}
 				}));
 		addSetting.settingEl.addClass("bulk-properties-add-property");
 	}

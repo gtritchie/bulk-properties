@@ -14,11 +14,11 @@ export async function setSelection(
 				fm[selectionProperty] = selected;
 			},
 		);
+		onComplete?.();
 	} catch (err: unknown) {
 		console.error("bulk-properties: failed to toggle selection:", err);
 		new Notice(`Failed to update "${file.name}". Check the developer console.`);
 	}
-	onComplete?.();
 }
 
 export function isFileSelected(
