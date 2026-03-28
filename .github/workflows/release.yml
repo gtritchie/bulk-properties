@@ -3,7 +3,7 @@ name: Release Obsidian plugin
 on:
     push:
         tags:
-            - "*"
+            - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
     build:
@@ -19,6 +19,15 @@ jobs:
               uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "22.x"
+
+            - name: Validate tag matches manifest version
+              run: |
+                  tag="${GITHUB_REF#refs/tags/}"
+                  manifest_version=$(node -p "require('./manifest.json').version")
+                  if [ "$tag" != "$manifest_version" ]; then
+                    echo "::error::Tag $tag does not match manifest.json version $manifest_version"
+                    exit 1
+                  fi
 
             - name: Build plugin
               run: |
