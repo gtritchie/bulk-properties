@@ -4,7 +4,7 @@ import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
 import {getSelectedFiles} from "./files";
 import {removeSelectionProperty} from "./remove-selection-property";
-import {isFileSelected, toggleSelection} from "./toggle-selection";
+import {isFileSelected, setSelection} from "./toggle-selection";
 
 export default class BulkPropertiesPlugin extends Plugin {
 	settings: BulkPropertiesSettings;
@@ -81,10 +81,11 @@ export default class BulkPropertiesPlugin extends Plugin {
 					item.setTitle(selected ? "Deselect for bulk edit" : "Select for bulk edit")
 						.setIcon("list-checks")
 						.onClick(() => {
-							void toggleSelection(
+							void setSelection(
 								this.app,
 								file,
 								selProp,
+								!selected,
 								() => this.updateStatusBar(),
 							);
 						});

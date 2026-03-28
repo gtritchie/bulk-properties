@@ -1,16 +1,17 @@
 import {App, Notice, TFile} from "obsidian";
 
-export async function toggleSelection(
+export async function setSelection(
 	app: App,
 	file: TFile,
 	selectionProperty: string,
+	selected: boolean,
 	onComplete?: () => void,
 ): Promise<void> {
 	try {
 		await app.fileManager.processFrontMatter(
 			file,
 			(fm: Record<string, unknown>) => {
-				fm[selectionProperty] = fm[selectionProperty] !== true;
+				fm[selectionProperty] = selected;
 			},
 		);
 	} catch (err: unknown) {
