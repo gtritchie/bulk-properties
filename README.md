@@ -10,16 +10,21 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 
 1. Add a checkbox property (such as `selected`) to your notes or Base view.
 2. Check the box on each file you want to bulk edit.
-3. Open the bulk edit dialog from the ribbon icon or the **Bulk edit selected files** command.
+3. Open the bulk edit dialog from the ribbon icon, the **Bulk edit selected files** command, or the editor right-click menu.
 4. Review the file checklist — uncheck any files you don't want to modify, or re-check files you do.
 5. Choose a property from the dropdown, enter the new value, and select **Update**.
 6. Optionally enable **Deselect when finished** to uncheck all files after the update.
 
 ## Commands
 
-- **Bulk edit selected files** — opens the bulk edit dialog showing all files with the selection property checked.
+- **Bulk edit selected files** — opens the bulk edit dialog showing all files with the selection property checked. Also available from the editor right-click menu.
 - **Deselect all files** — unchecks the selection property on every file in the vault that has it checked.
 - **Remove selection property from all files** — removes the selection property entirely from every file in the vault that has it.
+
+## Context menus
+
+- **Editor menu** — right-click inside an editor to open the bulk edit dialog.
+- **File menu** — right-click a markdown file in the file explorer or a Base view to toggle its selection. The menu item reads **Select for bulk edit** or **Deselect for bulk edit** based on the file's current state.
 
 ## Setup
 

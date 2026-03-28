@@ -1,9 +1,10 @@
-import {Plugin} from "obsidian";
+import {Plugin, TFile} from "obsidian";
 import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
 import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
 import {getSelectedFiles} from "./files";
 import {removeSelectionProperty} from "./remove-selection-property";
+import {isFileSelected, setSelection} from "./toggle-selection";
 
 export default class BulkPropertiesPlugin extends Plugin {
 	settings: BulkPropertiesSettings;
@@ -56,6 +57,39 @@ export default class BulkPropertiesPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("delete", () => {
 				this.updateStatusBar();
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on("editor-menu", (menu) => {
+				menu.addItem((item) => {
+					item.setTitle("Bulk edit selected files")
+						.setIcon("list-checks")
+						.onClick(() => {
+							new BulkEditModal(this.app, this).open();
+						});
+				});
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				if (!(file instanceof TFile) || file.extension !== "md") return;
+				const selProp = this.settings.selectionProperty;
+				const selected = isFileSelected(this.app, file, selProp);
+				menu.addItem((item) => {
+					item.setTitle(selected ? "Deselect for bulk edit" : "Select for bulk edit")
+						.setIcon("list-checks")
+						.onClick(() => {
+							void setSelection(
+								this.app,
+								file,
+								selProp,
+								!selected,
+								() => this.updateStatusBar(),
+							);
+						});
+				});
 			}),
 		);
 
