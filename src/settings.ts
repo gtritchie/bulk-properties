@@ -55,6 +55,7 @@ export interface BulkPropertiesSettings {
 	selectionProperty: string;
 	properties: PropertyConfig[];
 	lastSelectedProperty: string;
+	showStatusBarCount: boolean;
 }
 
 export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
@@ -62,6 +63,7 @@ export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 	selectionProperty: "selected",
 	properties: [],
 	lastSelectedProperty: "",
+	showStatusBarCount: true,
 };
 
 export class BulkPropertiesSettingTab extends PluginSettingTab {
@@ -86,6 +88,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.selectionProperty = value.trim() || "selected";
 						await this.plugin.saveSettings();
+						this.plugin.updateStatusBar();
 					});
 				new PropertyNameSuggest(this.app, search.inputEl);
 			});
@@ -98,6 +101,17 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.deselectWhenFinished = value;
 					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Show selection count in status bar")
+			.setDesc("Display the number of selected files in the status bar")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showStatusBarCount)
+				.onChange(async (value) => {
+					this.plugin.settings.showStatusBarCount = value;
+					await this.plugin.saveSettings();
+					this.plugin.updateStatusBar();
 				}));
 
 		new Setting(containerEl)
