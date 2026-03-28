@@ -28,28 +28,32 @@ export async function withProgress(
 		cancelled = true;
 	});
 
+	const textEl = notice.messageEl.createSpan();
+	notice.messageEl.appendChild(cancelBtn);
+
 	let succeeded = 0;
 	const failed: string[] = [];
 
-	for (let i = 0; i < files.length; i++) {
-		if (cancelled) break;
-		const file = files[i]!;
+	try {
+		for (let i = 0; i < files.length; i++) {
+			if (cancelled) break;
+			const file = files[i]!;
 
-		notice.setMessage(`${label} ${i + 1} / ${files.length}...`);
-		notice.messageEl.appendChild(cancelBtn);
+			textEl.textContent = `${label} ${i + 1} / ${files.length}...`;
 
-		try {
-			await action(file);
-			succeeded++;
-		} catch (err: unknown) {
-			console.error(
-				`bulk-properties: ${label} failed on ${file.path}:`,
-				err,
-			);
-			failed.push(file.path);
+			try {
+				await action(file);
+				succeeded++;
+			} catch (err: unknown) {
+				console.error(
+					`bulk-properties: ${label} failed on ${file.path}:`,
+					err,
+				);
+				failed.push(file.path);
+			}
 		}
+	} finally {
+		notice.hide();
 	}
-
-	notice.hide();
 	return {succeeded, failed, cancelled, total: files.length};
 }

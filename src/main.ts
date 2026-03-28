@@ -1,5 +1,5 @@
 import {Plugin, TFile} from "obsidian";
-import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
+import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS, PROPERTY_TYPES} from "./settings";
 import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
 import {getSelectedFiles} from "./files";
@@ -7,10 +7,10 @@ import {removeSelectionProperty} from "./remove-selection-property";
 import {isFileSelected, setSelection} from "./toggle-selection";
 
 export default class BulkPropertiesPlugin extends Plugin {
-	settings: BulkPropertiesSettings;
+	settings!: BulkPropertiesSettings;
 	private statusBarEl: HTMLElement | null = null;
 
-	async onload() {
+	override async onload() {
 		await this.loadSettings();
 
 		this.statusBarEl = this.addStatusBarItem();
@@ -118,7 +118,35 @@ export default class BulkPropertiesPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<BulkPropertiesSettings>);
+		this.settings = Object.assign(
+			{}, DEFAULT_SETTINGS,
+			await this.loadData() as Partial<BulkPropertiesSettings>,
+		);
+
+		if (typeof this.settings.selectionProperty !== "string"
+			|| this.settings.selectionProperty.trim() === "") {
+			this.settings.selectionProperty = DEFAULT_SETTINGS.selectionProperty;
+		}
+
+		if (!Array.isArray(this.settings.properties)) {
+			this.settings.properties = [];
+		} else {
+			const validTypes: ReadonlySet<string> = new Set(PROPERTY_TYPES);
+			const before = this.settings.properties.length;
+			this.settings.properties = this.settings.properties.filter(
+				(p): p is typeof p =>
+					typeof p === "object"
+					&& p !== null
+					&& typeof p.name === "string"
+					&& p.name.trim() !== ""
+					&& validTypes.has(p.type),
+			);
+			if (this.settings.properties.length < before) {
+				console.warn(
+					`bulk-properties: discarded ${before - this.settings.properties.length} malformed property entries from settings`,
+				);
+			}
+		}
 	}
 
 	async saveSettings() {

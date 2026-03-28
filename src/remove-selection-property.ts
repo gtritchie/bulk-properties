@@ -20,7 +20,7 @@ class ConfirmRemoveModal extends Modal {
 		this.onConfirm = onConfirm;
 	}
 
-	onOpen() {
+	override onOpen() {
 		const {contentEl} = this;
 
 		new Setting(contentEl)
@@ -45,7 +45,7 @@ class ConfirmRemoveModal extends Modal {
 				}));
 	}
 
-	onClose() {
+	override onClose() {
 		this.contentEl.empty();
 		if (this.confirmed) {
 			this.onConfirm();
@@ -79,7 +79,7 @@ export function removeSelectionProperty(
 					err,
 				);
 				new Notice(
-					"An unexpected error occurred. Check the developer console.",
+					`Failed to remove the "${selectionProperty}" property. Check the developer console.`,
 				);
 			},
 		);
