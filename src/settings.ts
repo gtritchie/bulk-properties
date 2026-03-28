@@ -1,4 +1,4 @@
-import {AbstractInputSuggest, App, ButtonComponent, Notice, PluginSettingTab, Setting} from "obsidian";
+import {AbstractInputSuggest, App, ButtonComponent, DropdownComponent, Notice, PluginSettingTab, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 
 function getAllPropertyNames(app: App): string[] {
@@ -50,6 +50,29 @@ export const PROPERTY_TYPES = [
 ] as const;
 
 export type PropertyType = typeof PROPERTY_TYPES[number];
+
+// Uses Obsidian's undocumented metadataTypeManager to look up the type
+// assigned to a property in Settings → Properties. Returns null if the
+// API is unavailable, the property is unknown, or the widget value
+// doesn't match a recognized type.
+function detectPropertyType(app: App, name: string): PropertyType | null {
+	try {
+		// metadataTypeManager is an undocumented internal API — not in
+		// obsidian.d.ts. All access is runtime-guarded; the any cast and
+		// unsafe member accesses are intentional.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+		const mtm = (app as any).metadataTypeManager as
+			| { getPropertyInfo?: (name: string) => { widget?: string } | undefined }
+			| undefined;
+		if (!mtm || typeof mtm.getPropertyInfo !== "function") return null;
+		const info = mtm.getPropertyInfo(name);
+		if (!info || typeof info.widget !== "string") return null;
+		const validTypes: ReadonlySet<string> = new Set(PROPERTY_TYPES);
+		return validTypes.has(info.widget) ? info.widget as PropertyType : null;
+	} catch {
+		return null;
+	}
+}
 
 export interface PropertyConfig {
 	name: string;
@@ -188,12 +211,25 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		let nameInputEl: HTMLInputElement;
 		let newType: PropertyType | "" = "";
 		let addBtn: ButtonComponent | undefined;
+		let typeDropdown: DropdownComponent;
 
 		function updateAddButton(): void {
 			addBtn?.setDisabled(
 				nameInputEl.value.trim() === "" || newType === "",
 			);
 		}
+
+		const tryAutoDetect = (): void => {
+			const name = nameInputEl.value.trim();
+			if (name === "") {
+				newType = "";
+				typeDropdown.setValue("");
+				return;
+			}
+			const detected = detectPropertyType(this.app, name);
+			newType = detected ?? "";
+			typeDropdown.setValue(detected ?? "");
+		};
 
 		const addSetting = new Setting(containerEl)
 			.setName("Add property")
@@ -202,9 +238,17 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
 				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
-				suggest.onSuggestionSelected = updateAddButton;
+				suggest.onSuggestionSelected = () => {
+					tryAutoDetect();
+					updateAddButton();
+				};
+				nameInputEl.addEventListener("blur", () => {
+					tryAutoDetect();
+					updateAddButton();
+				});
 			})
 			.addDropdown(dropdown => {
+				typeDropdown = dropdown;
 				const placeholder = dropdown.selectEl.createEl("option", {
 					value: "",
 					text: "Choose type\u2026",
