@@ -17,6 +17,8 @@ function getAllPropertyNames(app: App): string[] {
 }
 
 class PropertyNameSuggest extends AbstractInputSuggest<string> {
+	onSuggestionSelected?: () => void;
+
 	override getSuggestions(query: string): string[] {
 		const lower = query.toLowerCase();
 		return getAllPropertyNames(this.app).filter(name => name.toLowerCase().includes(lower));
@@ -26,6 +28,14 @@ class PropertyNameSuggest extends AbstractInputSuggest<string> {
 		el.setText(value);
 	}
 
+	override selectSuggestion(
+		value: string,
+		_evt: MouseEvent | KeyboardEvent,
+	): void {
+		this.setValue(value);
+		this.close();
+		this.onSuggestionSelected?.();
+	}
 }
 
 export const PROPERTY_TYPES = [
@@ -185,8 +195,8 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				search.setPlaceholder("Property name");
 				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
-				new PropertyNameSuggest(this.app, nameInputEl)
-					.onSelect(() => updateAddButton());
+				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
+				suggest.onSuggestionSelected = updateAddButton;
 			})
 			.addDropdown(dropdown => {
 				const placeholder = dropdown.selectEl.createEl("option", {
