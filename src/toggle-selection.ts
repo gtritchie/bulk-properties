@@ -6,13 +6,11 @@ export async function toggleSelection(
 	selectionProperty: string,
 	onComplete?: () => void,
 ): Promise<void> {
-	const cache = app.metadataCache.getFileCache(file);
-	const isSelected = cache?.frontmatter?.[selectionProperty] === true;
 	try {
 		await app.fileManager.processFrontMatter(
 			file,
 			(fm: Record<string, unknown>) => {
-				fm[selectionProperty] = !isSelected;
+				fm[selectionProperty] = fm[selectionProperty] !== true;
 			},
 		);
 	} catch (err: unknown) {
