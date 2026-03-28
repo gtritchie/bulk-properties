@@ -1,4 +1,4 @@
-import {AbstractInputSuggest, App, Notice, PluginSettingTab, Setting} from "obsidian";
+import {AbstractInputSuggest, App, ButtonComponent, Notice, PluginSettingTab, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 
 function getAllPropertyNames(app: App): string[] {
@@ -26,10 +26,6 @@ class PropertyNameSuggest extends AbstractInputSuggest<string> {
 		el.setText(value);
 	}
 
-	override selectSuggestion(value: string): void {
-		this.setValue(value);
-		this.close();
-	}
 }
 
 export const PROPERTY_TYPES = [
@@ -174,45 +170,67 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		}
 
 		let nameInputEl: HTMLInputElement;
-		let newType: PropertyType = "text";
+		let newType: PropertyType | "" = "";
+		let addBtn: ButtonComponent | undefined;
+
+		function updateAddButton(): void {
+			addBtn?.setDisabled(
+				nameInputEl.value.trim() === "" || newType === "",
+			);
+		}
 
 		const addSetting = new Setting(containerEl)
 			.setName("Add property")
 			.addSearch(search => {
 				search.setPlaceholder("Property name");
+				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
-				new PropertyNameSuggest(this.app, nameInputEl);
+				new PropertyNameSuggest(this.app, nameInputEl)
+					.onSelect(() => updateAddButton());
 			})
 			.addDropdown(dropdown => {
+				const placeholder = dropdown.selectEl.createEl("option", {
+					value: "",
+					text: "Choose type\u2026",
+				});
+				placeholder.disabled = true;
+				placeholder.selected = true;
+
 				for (const t of PROPERTY_TYPES) {
 					dropdown.addOption(t, t);
 				}
-				dropdown.setValue(newType);
 				dropdown.onChange(value => {
 					newType = value as PropertyType;
+					updateAddButton();
 				});
 			})
-			.addButton(btn => btn
-				.setButtonText("Add")
-				.setCta()
-				.onClick(async () => {
-					const newName = nameInputEl.value.trim();
-					if (!newName) {
-						new Notice("Enter a property name");
-						return;
-					}
-					if (this.plugin.settings.properties.some(p => p.name === newName)) {
-						new Notice(`Property "${newName}" is already configured`);
-						return;
-					}
-					const updated = [
-						...this.plugin.settings.properties,
-						{name: newName, type: newType},
-					];
-					if (await this.updateSetting("properties", updated)) {
-						this.display();
-					}
-				}));
+			.addButton(btn => {
+				addBtn = btn;
+				btn.setButtonText("Add")
+					.setCta()
+					.setDisabled(true)
+					.onClick(async () => {
+						const newName = nameInputEl.value.trim();
+						if (!newName || newType === "") {
+							return;
+						}
+						if (this.plugin.settings.properties.some(
+							p => p.name === newName,
+						)) {
+							new Notice(
+								`Property "${newName}" is already configured`,
+							);
+							return;
+						}
+						const updated = [
+							...this.plugin.settings.properties,
+							{name: newName, type: newType},
+						];
+						if (await this.updateSetting("properties", updated)) {
+							this.display();
+						}
+					});
+			});
 		addSetting.settingEl.addClass("bulk-properties-add-property");
 	}
 }
