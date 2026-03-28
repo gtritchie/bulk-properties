@@ -78,7 +78,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 				const selProp = this.settings.selectionProperty;
 				const selected = isFileSelected(this.app, file, selProp);
 				menu.addItem((item) => {
-					item.setTitle(selected ? "Deselect file" : "Select file")
+					item.setTitle(selected ? "Deselect for bulk edit" : "Select for bulk edit")
 						.setIcon("list-checks")
 						.onClick(() => {
 							void toggleSelection(
