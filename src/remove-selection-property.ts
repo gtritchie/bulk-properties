@@ -29,7 +29,7 @@ class ConfirmRemoveModal extends Modal {
 
 		const n = this.fileCount;
 		contentEl.createEl("p", {
-			text: `This will modify all ${n} file${n === 1 ? "" : "s"} in your vault by removing the "${this.property}" property from them. Are you sure?`,
+			text: `This will modify ${n} file${n === 1 ? "" : "s"} in your vault by removing the "${this.property}" property from them. Are you sure?`,
 		});
 
 		new Setting(contentEl)
