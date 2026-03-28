@@ -212,6 +212,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		let newType: PropertyType | "" = "";
 		let addBtn: ButtonComponent | undefined;
 		let typeDropdown: DropdownComponent;
+		let lastDetectedName = "";
 
 		function updateAddButton(): void {
 			addBtn?.setDisabled(
@@ -221,6 +222,8 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 		const tryAutoDetect = (): void => {
 			const name = nameInputEl.value.trim();
+			if (name === lastDetectedName) return;
+			lastDetectedName = name;
 			if (name === "") {
 				newType = "";
 				typeDropdown.setValue("");
