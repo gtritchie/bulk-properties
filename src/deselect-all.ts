@@ -1,4 +1,5 @@
 import {App, Notice} from "obsidian";
+import {confirmDeselectAll} from "./confirm-modal";
 import {getSelectedFiles} from "./files";
 import {withProgress} from "./progress";
 
@@ -12,6 +13,9 @@ export async function deselectAll(
 		new Notice("No files are selected");
 		return;
 	}
+
+	const confirmed = await confirmDeselectAll(app, files.length);
+	if (!confirmed) return;
 
 	const result = await withProgress(
 		files,

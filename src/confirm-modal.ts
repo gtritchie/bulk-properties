@@ -40,6 +40,17 @@ class ConfirmModal extends Modal {
 	}
 }
 
+export function confirmDeselectAll(
+	app: App,
+	fileCount: number,
+): Promise<boolean> {
+	const noun = fileCount === 1 ? "file" : "files";
+	const message = `This will deselect ${fileCount} ${noun}. Are you sure?`;
+	return new Promise<boolean>(resolve => {
+		new ConfirmModal(app, message, resolve).open();
+	});
+}
+
 export function confirmEmptyValue(
 	app: App,
 	property: string,
