@@ -184,6 +184,10 @@ export class BulkEditModal extends Modal {
 				console.error(`bulk-properties: failed to toggle selection for ${file.path}:`, err);
 				checkbox.checked = !desired;
 				new Notice(`Failed to update selection for ${file.path}`);
+			} finally {
+				if (this.pendingSaves.get(file) === save) {
+					this.pendingSaves.delete(file);
+				}
 			}
 			this.updateCountText();
 			if (!this.uiLocked) {
@@ -204,18 +208,28 @@ export class BulkEditModal extends Modal {
 				.map(([file]) => file);
 
 			const failed: string[] = [];
-			await Promise.all(filesToChange.map(async (file) => {
-				try {
-					await this.writeSelection(file, selected);
-					const checkbox = this.fileCheckboxes.get(file);
-					if (checkbox) {
-						checkbox.checked = selected;
+			const saves = filesToChange.map((file) => {
+				const previous = this.pendingSaves.get(file) ?? Promise.resolve();
+				const save = previous.then(async () => {
+					try {
+						await this.writeSelection(file, selected);
+						const checkbox = this.fileCheckboxes.get(file);
+						if (checkbox) {
+							checkbox.checked = selected;
+						}
+					} catch (err: unknown) {
+						console.error(`bulk-properties: failed to set selection for ${file.path}:`, err);
+						failed.push(file.path);
+					} finally {
+						if (this.pendingSaves.get(file) === save) {
+							this.pendingSaves.delete(file);
+						}
 					}
-				} catch (err: unknown) {
-					console.error(`bulk-properties: failed to set selection for ${file.path}:`, err);
-					failed.push(file.path);
-				}
-			}));
+				});
+				this.pendingSaves.set(file, save);
+				return save;
+			});
+			await Promise.all(saves);
 
 			this.updateCountText();
 			if (failed.length > 0) {
