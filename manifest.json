@@ -4,6 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "1.4.10",
 	"description": "Edit properties across multiple files at once, using a checkbox property to select which files to update.",
-	"author": "Gary",
-	"isDesktopOnly": false
+	"author": "Gary Ritchie",
+	"isDesktopOnly": false,
+	"fundingUrl": "https://github.com/sponsors/gtritchie"
 }
