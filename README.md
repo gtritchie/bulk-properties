@@ -35,6 +35,11 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 - **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog (default: on).
 - **Show selection count in status bar** — displays the number of selected files in the status bar (default: on). The count updates automatically as you check or uncheck the selection property. Status bar items are not available on mobile.
 
-## Installing
+## Manual Installation
 
-Copy `main.js`, `styles.css`, and `manifest.json` to your vault at `.obsidian/plugins/bulk-properties/`.
+> [!NOTE]
+> These instructions are for installing and testing the plugin prior to its available in the Obsidian Community Plugins list.
+
+Recommended approach is to use the BRAT plugin (available as a Community Plugin) and point it at this repository.
+
+For a fully-manual installation, copy `main.js`, `styles.css`, and `manifest.json` to your vault at `.obsidian/plugins/bulk-properties/`.
