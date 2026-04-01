@@ -1,4 +1,4 @@
-import {App, Modal, Notice, Setting, TFile} from "obsidian";
+import {App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
@@ -332,6 +332,7 @@ export class BulkEditModal extends Modal {
 							cls: "multi-select-pill-remove-button",
 							attr: {"aria-label": `Remove ${value}`},
 						});
+						setIcon(removeBtn, "x");
 						const idx = i;
 						removeBtn.addEventListener("click", () => {
 							pills.splice(idx, 1);
