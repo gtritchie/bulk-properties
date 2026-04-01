@@ -374,20 +374,6 @@ export class BulkEditModal extends Modal {
 					}
 				});
 
-				pillInput.addEventListener("blur", (e: FocusEvent) => {
-					const next = e.relatedTarget;
-					if (
-						next instanceof Node &&
-						pillContainer.contains(next)
-					) {
-						return;
-					}
-					if (pillInput.value.trim() !== "") {
-						addPill(pillInput.value);
-						pillInput.value = "";
-					}
-				});
-
 				pillInput.addEventListener("paste", (e: ClipboardEvent) => {
 					e.preventDefault();
 					const pasted =
@@ -403,6 +389,20 @@ export class BulkEditModal extends Modal {
 						addPill(part);
 					}
 					pillInput.value = trailing;
+				});
+
+				pillContainer.addEventListener("focusout", (e: FocusEvent) => {
+					const next = e.relatedTarget;
+					if (
+						next instanceof Node &&
+						pillContainer.contains(next)
+					) {
+						return;
+					}
+					if (pillInput.value.trim() !== "") {
+						addPill(pillInput.value);
+						pillInput.value = "";
+					}
 				});
 
 				pillContainer.addEventListener("click", (e: MouseEvent) => {
