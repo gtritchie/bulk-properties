@@ -298,14 +298,104 @@ export class BulkEditModal extends Modal {
 
 			case "tags":
 			case "aliases":
-			case "multitext":
-				setting.setDesc("Comma-separated values");
-				setting.addTextArea(area => area
-					.setPlaceholder("Value1, value2, value3")
-					.onChange(value => {
-						this.rawValue = value;
-					}));
+			case "multitext": {
+				const pills: string[] = [];
+				const dedupTypes = new Set(["tags", "aliases"]);
+				const shouldDedup = dedupTypes.has(type);
+
+				const syncRawValue = () => {
+					this.rawValue = pills.join(",");
+				};
+
+				const pillContainer = setting.controlEl.createDiv({
+					cls: "bulk-properties-pill-container",
+				});
+				const pillInput = pillContainer.createEl("input", {
+					cls: "bulk-properties-pill-input",
+					attr: {placeholder: "Type and press enter"},
+				});
+
+				const renderPills = () => {
+					pillContainer
+						.querySelectorAll(".multi-select-pill")
+						.forEach(el => el.remove());
+					for (let i = 0; i < pills.length; i++) {
+						const value = pills[i] ?? "";
+						const pill = pillContainer.createSpan({
+							cls: "multi-select-pill",
+						});
+						pill.createSpan({
+							cls: "multi-select-pill-content",
+							text: value,
+						});
+						const removeBtn = pill.createEl("button", {
+							cls: "multi-select-pill-remove-button",
+							attr: {"aria-label": `Remove ${value}`},
+						});
+						const idx = i;
+						removeBtn.addEventListener("click", () => {
+							pills.splice(idx, 1);
+							renderPills();
+							syncRawValue();
+							pillInput.focus();
+						});
+					}
+					pillContainer.appendChild(pillInput);
+				};
+
+				const addPill = (text: string) => {
+					const trimmed = text.trim();
+					if (trimmed === "") return;
+					if (shouldDedup && pills.includes(trimmed)) return;
+					pills.push(trimmed);
+					renderPills();
+					syncRawValue();
+				};
+
+				const removeLast = () => {
+					if (pills.length === 0) return;
+					pills.pop();
+					renderPills();
+					syncRawValue();
+				};
+
+				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
+					if (e.isComposing) return;
+					if (e.key === "Enter" || e.key === ",") {
+						e.preventDefault();
+						addPill(pillInput.value);
+						pillInput.value = "";
+					} else if (
+						e.key === "Backspace" &&
+						pillInput.value === ""
+					) {
+						removeLast();
+					}
+				});
+
+				pillInput.addEventListener("blur", () => {
+					if (pillInput.value.trim() !== "") {
+						addPill(pillInput.value);
+						pillInput.value = "";
+					}
+				});
+
+				pillInput.addEventListener("paste", (e: ClipboardEvent) => {
+					e.preventDefault();
+					const text = e.clipboardData?.getData("text") ?? "";
+					for (const part of text.split(",")) {
+						addPill(part);
+					}
+					pillInput.value = "";
+				});
+
+				pillContainer.addEventListener("click", (e: MouseEvent) => {
+					if (e.target === pillContainer) {
+						pillInput.focus();
+					}
+				});
 				break;
+			}
 
 			default:
 				setting.addText(text => text
