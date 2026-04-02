@@ -63,6 +63,7 @@ export class BulkEditModal extends Modal {
 	private selectAllBtn!: HTMLButtonElement;
 	private deselectAllBtn!: HTMLButtonElement;
 	private uiLocked = false;
+	private activePillInput: HTMLInputElement | null = null;
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app);
@@ -178,7 +179,9 @@ export class BulkEditModal extends Modal {
 		const total = this.fileSelection.size;
 		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
 		if (this.updateBtn && !this.uiLocked) {
-			this.updateBtn.disabled = checked === 0;
+			const hasUncommitted = this.activePillInput !== null
+				&& this.activePillInput.value.trim() !== "";
+			this.updateBtn.disabled = checked === 0 || hasUncommitted;
 		}
 	}
 
@@ -267,6 +270,8 @@ export class BulkEditModal extends Modal {
 	private renderValueInput() {
 		this.valueContainerEl.empty();
 		this.rawValue = "";
+		this.activePillInput = null;
+		this.updateCountText();
 		const type = this.getPropertyType(this.selectedProperty);
 
 		const setting = new Setting(this.valueContainerEl).setName("New value");
@@ -332,6 +337,7 @@ export class BulkEditModal extends Modal {
 					cls: "bulk-properties-pill-input",
 					attr: {placeholder: "Type and press enter"},
 				});
+				this.activePillInput = pillInput;
 
 				const renderPills = () => {
 					pillContainer
@@ -381,26 +387,27 @@ export class BulkEditModal extends Modal {
 					pillContainer.appendChild(pillInput);
 				};
 
-				const addPill = (text: string, refocus = false) => {
+				const addPill = (text: string, refocus = false): boolean => {
 					let trimmed = text.trim();
-					if (trimmed === "") return;
+					if (trimmed === "") return true;
 					if (type === "tags") {
 						trimmed = trimmed.replace(/^#/, "");
 						if (trimmed === "") {
 							new Notice("Tag name can\u2019t be empty");
-							return;
+							return false;
 						}
 						const reason = validateTag(trimmed);
 						if (reason !== null) {
 							new Notice(reason);
-							return;
+							return false;
 						}
 					}
-					if (shouldDedup && pills.includes(trimmed)) return;
+					if (shouldDedup && pills.includes(trimmed)) return true;
 					pills.push(trimmed);
 					renderPills();
 					syncRawValue();
 					if (refocus) pillInput.focus();
+					return true;
 				};
 
 				const removeLast = () => {
@@ -417,7 +424,10 @@ export class BulkEditModal extends Modal {
 						e.preventDefault();
 						const val = pillInput.value;
 						pillInput.value = "";
-						addPill(val, true);
+						if (!addPill(val, true)) {
+							pillInput.value = val;
+						}
+						this.updateCountText();
 					} else if (
 						e.key === "Backspace" &&
 						pillInput.value === ""
@@ -438,10 +448,17 @@ export class BulkEditModal extends Modal {
 					const parts = combined.split(",");
 					const trailing = parts.pop() ?? "";
 					pillInput.value = "";
+					const rejected: string[] = [];
 					for (const part of parts) {
-						addPill(part, true);
+						if (!addPill(part, true)) {
+							const t = part.trim();
+							if (t !== "") rejected.push(t);
+						}
 					}
-					pillInput.value = trailing;
+					pillInput.value = rejected.length > 0
+						? rejected.join(",") + "," + trailing
+						: trailing;
+					this.updateCountText();
 				});
 
 				pillContainer.addEventListener("focusout", (e: FocusEvent) => {
@@ -453,9 +470,17 @@ export class BulkEditModal extends Modal {
 						return;
 					}
 					if (pillInput.value.trim() !== "") {
-						addPill(pillInput.value);
+						const val = pillInput.value;
 						pillInput.value = "";
+						if (!addPill(val)) {
+							pillInput.value = val;
+						}
+						this.updateCountText();
 					}
+				});
+
+				pillInput.addEventListener("input", () => {
+					this.updateCountText();
 				});
 
 				pillContainer.addEventListener("click", (e: MouseEvent) => {
@@ -483,11 +508,17 @@ export class BulkEditModal extends Modal {
 		if (this.selectAllBtn) this.selectAllBtn.disabled = !enabled;
 		if (this.deselectAllBtn) this.deselectAllBtn.disabled = !enabled;
 		if (this.updateBtn) {
-			this.updateBtn.disabled = !enabled || this.getCheckedFiles().length === 0;
+			const hasUncommitted = this.activePillInput !== null
+				&& this.activePillInput.value.trim() !== "";
+			this.updateBtn.disabled = !enabled || this.getCheckedFiles().length === 0 || hasUncommitted;
 		}
 	}
 
 	private async doUpdate() {
+		if (this.activePillInput && this.activePillInput.value.trim() !== "") {
+			new Notice("Commit or clear the text in the input field before updating");
+			return;
+		}
 		this.uiLocked = true;
 		this.setUIEnabled(false);
 		await Promise.all(this.pendingSaves.values());
