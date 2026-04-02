@@ -1,8 +1,26 @@
-import {App, Modal, Notice, Setting, TFile} from "obsidian";
+import {App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
 import {withProgress} from "./progress";
+
+/**
+ * Validates a tag name against Obsidian's naming rules.
+ * Returns null if valid, or a reason string if invalid.
+ */
+function validateTag(tag: string): string | null {
+	if (/\s/.test(tag)) {
+		return "Tags can\u2019t contain spaces";
+	}
+	if (/^\d+$/.test(tag)) {
+		return "Tags must contain at least one non-numerical character";
+	}
+	// Allowed: word chars, hyphens, forward slashes, non-ASCII (emoji, symbols, etc.)
+	if (/[^\w\-/\u{0080}-\u{10FFFF}]/u.test(tag)) {
+		return "Tags can only contain letters, numbers, underscores, hyphens, and forward slashes";
+	}
+	return null;
+}
 
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
@@ -298,14 +316,155 @@ export class BulkEditModal extends Modal {
 
 			case "tags":
 			case "aliases":
-			case "multitext":
-				setting.setDesc("Comma-separated values");
-				setting.addTextArea(area => area
-					.setPlaceholder("Value1, value2, value3")
-					.onChange(value => {
-						this.rawValue = value;
-					}));
+			case "multitext": {
+				const pills: string[] = [];
+				const dedupTypes = new Set(["tags", "aliases"]);
+				const shouldDedup = dedupTypes.has(type);
+
+				const syncRawValue = () => {
+					this.rawValue = pills.join(",");
+				};
+
+				const pillContainer = setting.controlEl.createDiv({
+					cls: "bulk-properties-pill-container",
+				});
+				const pillInput = pillContainer.createEl("input", {
+					cls: "bulk-properties-pill-input",
+					attr: {placeholder: "Type and press enter"},
+				});
+
+				const renderPills = () => {
+					pillContainer
+						.querySelectorAll(".multi-select-pill")
+						.forEach(el => el.remove());
+					for (let i = 0; i < pills.length; i++) {
+						const value = pills[i] ?? "";
+						const pill = pillContainer.createSpan({
+							cls: "multi-select-pill",
+						});
+						pill.createSpan({
+							cls: "multi-select-pill-content",
+							text: value,
+						});
+						const removeBtn = pill.createSpan({
+							cls: "multi-select-pill-remove-button",
+							attr: {
+								"aria-label": `Remove ${value}`,
+								"role": "button",
+								"tabindex": "0",
+							},
+						});
+						setIcon(removeBtn, "x");
+						const idx = i;
+						const doRemove = () => {
+							pills.splice(idx, 1);
+							renderPills();
+							syncRawValue();
+							pillInput.focus();
+						};
+						removeBtn.addEventListener("click", doRemove);
+						removeBtn.addEventListener("keydown", (e: KeyboardEvent) => {
+							if (e.key === "Enter") {
+								e.preventDefault();
+								doRemove();
+							} else if (e.key === " ") {
+								e.preventDefault();
+							}
+						});
+						removeBtn.addEventListener("keyup", (e: KeyboardEvent) => {
+							if (e.key === " ") {
+								e.preventDefault();
+								doRemove();
+							}
+						});
+					}
+					pillContainer.appendChild(pillInput);
+				};
+
+				const addPill = (text: string, refocus = false) => {
+					let trimmed = text.trim();
+					if (trimmed === "") return;
+					if (type === "tags") {
+						trimmed = trimmed.replace(/^#/, "");
+						if (trimmed === "") {
+							new Notice("Tag name can\u2019t be empty");
+							return;
+						}
+						const reason = validateTag(trimmed);
+						if (reason !== null) {
+							new Notice(reason);
+							return;
+						}
+					}
+					if (shouldDedup && pills.includes(trimmed)) return;
+					pills.push(trimmed);
+					renderPills();
+					syncRawValue();
+					if (refocus) pillInput.focus();
+				};
+
+				const removeLast = () => {
+					if (pills.length === 0) return;
+					pills.pop();
+					renderPills();
+					syncRawValue();
+					pillInput.focus();
+				};
+
+				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
+					if (e.isComposing) return;
+					if (e.key === "Enter" || e.key === ",") {
+						e.preventDefault();
+						const val = pillInput.value;
+						pillInput.value = "";
+						addPill(val, true);
+					} else if (
+						e.key === "Backspace" &&
+						pillInput.value === ""
+					) {
+						removeLast();
+					}
+				});
+
+				pillInput.addEventListener("paste", (e: ClipboardEvent) => {
+					e.preventDefault();
+					const pasted =
+						e.clipboardData?.getData("text") ?? "";
+					const start = pillInput.selectionStart ?? 0;
+					const end = pillInput.selectionEnd ?? 0;
+					const before = pillInput.value.slice(0, start);
+					const after = pillInput.value.slice(end);
+					const combined = before + pasted + after;
+					const parts = combined.split(",");
+					const trailing = parts.pop() ?? "";
+					pillInput.value = "";
+					for (const part of parts) {
+						addPill(part, true);
+					}
+					pillInput.value = trailing;
+				});
+
+				pillContainer.addEventListener("focusout", (e: FocusEvent) => {
+					const next = e.relatedTarget;
+					if (
+						next instanceof Node &&
+						pillContainer.contains(next)
+					) {
+						return;
+					}
+					if (pillInput.value.trim() !== "") {
+						addPill(pillInput.value);
+						pillInput.value = "";
+					}
+				});
+
+				pillContainer.addEventListener("click", (e: MouseEvent) => {
+					if (e.target === pillContainer) {
+						pillInput.focus();
+					}
+				});
 				break;
+			}
 
 			default:
 				setting.addText(text => text
