@@ -415,8 +415,9 @@ export class BulkEditModal extends Modal {
 					if (e.isComposing) return;
 					if (e.key === "Enter" || e.key === ",") {
 						e.preventDefault();
-						addPill(pillInput.value, true);
+						const val = pillInput.value;
 						pillInput.value = "";
+						addPill(val, true);
 					} else if (
 						e.key === "Backspace" &&
 						pillInput.value === ""
@@ -436,6 +437,7 @@ export class BulkEditModal extends Modal {
 					const combined = before + pasted + after;
 					const parts = combined.split(",");
 					const trailing = parts.pop() ?? "";
+					pillInput.value = "";
 					for (const part of parts) {
 						addPill(part, true);
 					}
