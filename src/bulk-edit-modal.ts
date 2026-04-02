@@ -381,7 +381,7 @@ export class BulkEditModal extends Modal {
 					pillContainer.appendChild(pillInput);
 				};
 
-				const addPill = (text: string) => {
+				const addPill = (text: string, refocus = false) => {
 					let trimmed = text.trim();
 					if (trimmed === "") return;
 					if (type === "tags") {
@@ -400,7 +400,7 @@ export class BulkEditModal extends Modal {
 					pills.push(trimmed);
 					renderPills();
 					syncRawValue();
-					pillInput.focus();
+					if (refocus) pillInput.focus();
 				};
 
 				const removeLast = () => {
@@ -415,7 +415,7 @@ export class BulkEditModal extends Modal {
 					if (e.isComposing) return;
 					if (e.key === "Enter" || e.key === ",") {
 						e.preventDefault();
-						addPill(pillInput.value);
+						addPill(pillInput.value, true);
 						pillInput.value = "";
 					} else if (
 						e.key === "Backspace" &&
@@ -437,7 +437,7 @@ export class BulkEditModal extends Modal {
 					const parts = combined.split(",");
 					const trailing = parts.pop() ?? "";
 					for (const part of parts) {
-						addPill(part);
+						addPill(part, true);
 					}
 					pillInput.value = trailing;
 				});
