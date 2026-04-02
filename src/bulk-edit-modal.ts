@@ -422,10 +422,12 @@ export class BulkEditModal extends Modal {
 					if (e.isComposing) return;
 					if (e.key === "Enter" || e.key === ",") {
 						e.preventDefault();
-						if (addPill(pillInput.value, true)) {
-							pillInput.value = "";
-							this.updateCountText();
+						const val = pillInput.value;
+						pillInput.value = "";
+						if (!addPill(val, true)) {
+							pillInput.value = val;
 						}
+						this.updateCountText();
 					} else if (
 						e.key === "Backspace" &&
 						pillInput.value === ""
@@ -445,6 +447,7 @@ export class BulkEditModal extends Modal {
 					const combined = before + pasted + after;
 					const parts = combined.split(",");
 					const trailing = parts.pop() ?? "";
+					pillInput.value = "";
 					const rejected: string[] = [];
 					for (const part of parts) {
 						if (!addPill(part, true)) {
@@ -467,8 +470,10 @@ export class BulkEditModal extends Modal {
 						return;
 					}
 					if (pillInput.value.trim() !== "") {
-						if (addPill(pillInput.value)) {
-							pillInput.value = "";
+						const val = pillInput.value;
+						pillInput.value = "";
+						if (!addPill(val)) {
+							pillInput.value = val;
 						}
 						this.updateCountText();
 					}
