@@ -4,6 +4,24 @@ import {getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
 import {withProgress} from "./progress";
 
+/**
+ * Validates a tag name against Obsidian's naming rules.
+ * Returns null if valid, or a reason string if invalid.
+ */
+function validateTag(tag: string): string | null {
+	if (/\s/.test(tag)) {
+		return "Tags can\u2019t contain spaces";
+	}
+	if (/^\d+$/.test(tag)) {
+		return "Tags must contain at least one non-numerical character";
+	}
+	// Allowed: word chars, hyphens, forward slashes, non-ASCII (emoji, symbols, etc.)
+	if (/[^\w\-/\u{0080}-\u{10FFFF}]/u.test(tag)) {
+		return "Tags can only contain letters, numbers, underscores, hyphens, and forward slashes";
+	}
+	return null;
+}
+
 function coerceValue(raw: string, type: string): unknown {
 	switch (type) {
 		case "number": {
@@ -364,8 +382,17 @@ export class BulkEditModal extends Modal {
 				};
 
 				const addPill = (text: string) => {
-					const trimmed = text.trim();
+					let trimmed = text.trim();
 					if (trimmed === "") return;
+					if (type === "tags") {
+						trimmed = trimmed.replace(/^#/, "");
+						if (trimmed === "") return;
+						const reason = validateTag(trimmed);
+						if (reason !== null) {
+							new Notice(reason);
+							return;
+						}
+					}
 					if (shouldDedup && pills.includes(trimmed)) return;
 					pills.push(trimmed);
 					renderPills();
