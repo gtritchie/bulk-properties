@@ -328,17 +328,28 @@ export class BulkEditModal extends Modal {
 							cls: "multi-select-pill-content",
 							text: value,
 						});
-						const removeBtn = pill.createEl("button", {
+						const removeBtn = pill.createSpan({
 							cls: "multi-select-pill-remove-button",
-							attr: {"aria-label": `Remove ${value}`},
+							attr: {
+								"aria-label": `Remove ${value}`,
+								"role": "button",
+								"tabindex": "0",
+							},
 						});
 						setIcon(removeBtn, "x");
 						const idx = i;
-						removeBtn.addEventListener("click", () => {
+						const doRemove = () => {
 							pills.splice(idx, 1);
 							renderPills();
 							syncRawValue();
 							pillInput.focus();
+						};
+						removeBtn.addEventListener("click", doRemove);
+						removeBtn.addEventListener("keydown", (e: KeyboardEvent) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								doRemove();
+							}
 						});
 					}
 					pillContainer.appendChild(pillInput);
