@@ -55,6 +55,21 @@
 	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
+.bulk-properties-pill-container .multi-select-pill {
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-2-1) var(--size-2-3);
+}
+
+.bulk-properties-pill-container .multi-select-pill-remove-button {
+	border: none;
+	background: none;
+	padding: 0;
+	cursor: pointer;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+}
+
 .bulk-properties-pill-input {
 	flex: 1 1 80px;
 	min-width: 80px;
