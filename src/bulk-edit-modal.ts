@@ -386,7 +386,10 @@ export class BulkEditModal extends Modal {
 					if (trimmed === "") return;
 					if (type === "tags") {
 						trimmed = trimmed.replace(/^#/, "");
-						if (trimmed === "") return;
+						if (trimmed === "") {
+							new Notice("Tag name can\u2019t be empty");
+							return;
+						}
 						const reason = validateTag(trimmed);
 						if (reason !== null) {
 							new Notice(reason);
