@@ -400,6 +400,7 @@ export class BulkEditModal extends Modal {
 					pills.push(trimmed);
 					renderPills();
 					syncRawValue();
+					pillInput.focus();
 				};
 
 				const removeLast = () => {
@@ -407,6 +408,7 @@ export class BulkEditModal extends Modal {
 					pills.pop();
 					renderPills();
 					syncRawValue();
+					pillInput.focus();
 				};
 
 				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
