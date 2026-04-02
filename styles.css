@@ -63,11 +63,23 @@
 .bulk-properties-pill-container .multi-select-pill-remove-button {
 	border: none;
 	background: none;
-	padding: 0;
+	padding: var(--size-2-1);
+	border-radius: var(--radius-s);
 	cursor: pointer;
 	color: var(--text-muted);
 	display: flex;
 	align-items: center;
+}
+
+.bulk-properties-pill-container .multi-select-pill-remove-button:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.bulk-properties-pill-container .multi-select-pill-remove-button:focus-visible {
+	color: var(--text-normal);
+	outline: 2px solid var(--background-modifier-border-focus);
+	outline-offset: -1px;
 }
 
 .bulk-properties-pill-input {
