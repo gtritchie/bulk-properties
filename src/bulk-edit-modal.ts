@@ -346,7 +346,15 @@ export class BulkEditModal extends Modal {
 						};
 						removeBtn.addEventListener("click", doRemove);
 						removeBtn.addEventListener("keydown", (e: KeyboardEvent) => {
-							if (e.key === "Enter" || e.key === " ") {
+							if (e.key === "Enter") {
+								e.preventDefault();
+								doRemove();
+							} else if (e.key === " ") {
+								e.preventDefault();
+							}
+						});
+						removeBtn.addEventListener("keyup", (e: KeyboardEvent) => {
+							if (e.key === " ") {
 								e.preventDefault();
 								doRemove();
 							}
