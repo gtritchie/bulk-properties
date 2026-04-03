@@ -3,6 +3,7 @@ import type BulkPropertiesPlugin from "./main";
 import {getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
 import {withProgress} from "./progress";
+import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
 /**
  * Validates a tag name against Obsidian's naming rules.
@@ -147,33 +148,13 @@ export class BulkEditModal extends Modal {
 		new Setting(contentEl)
 			.setName("Deselect when finished")
 			.addToggle(toggle => {
+				makeToggleAccessible(toggle, "Deselect when finished", this.deselectWhenFinished);
 				toggle
 					.setValue(this.deselectWhenFinished)
 					.onChange(value => {
 						this.deselectWhenFinished = value;
-						toggle.toggleEl.setAttribute(
-							"aria-checked",
-							String(value),
-						);
+						updateToggleAriaChecked(toggle, value);
 					});
-				const el = toggle.toggleEl;
-				el.setAttribute("role", "switch");
-				el.setAttribute("aria-label", "Deselect when finished");
-				el.setAttribute(
-					"aria-checked",
-					String(this.deselectWhenFinished),
-				);
-				el.addEventListener("keydown", (e: KeyboardEvent) => {
-					if (e.key === " ") {
-						e.preventDefault();
-						toggle.onClick();
-					}
-				});
-				const input = el.querySelector("input");
-				if (input) {
-					input.setAttribute("tabindex", "-1");
-					input.setAttribute("aria-hidden", "true");
-				}
 			});
 
 		new Setting(contentEl)

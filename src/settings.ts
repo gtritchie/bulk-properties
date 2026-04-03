@@ -1,5 +1,6 @@
 import {AbstractInputSuggest, App, ButtonComponent, DropdownComponent, Notice, PluginSettingTab, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
+import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
 function getAllPropertyNames(app: App): string[] {
 	const names = new Set<string>();
@@ -163,22 +164,30 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Deselect when finished")
 			.setDesc("Default value for the deselect toggle in the bulk edit dialog")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.deselectWhenFinished)
-				.onChange(async (value) => {
-					await this.updateSetting("deselectWhenFinished", value);
-				}));
+			.addToggle(toggle => {
+				makeToggleAccessible(toggle, "Deselect when finished", this.plugin.settings.deselectWhenFinished);
+				toggle
+					.setValue(this.plugin.settings.deselectWhenFinished)
+					.onChange(async (value) => {
+						updateToggleAriaChecked(toggle, value);
+						await this.updateSetting("deselectWhenFinished", value);
+					});
+			});
 
 		new Setting(containerEl)
 			.setName("Show selection count in status bar")
 			.setDesc("Display the number of selected files in the status bar")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showStatusBarCount)
-				.onChange(async (value) => {
-					if (await this.updateSetting("showStatusBarCount", value)) {
-						this.plugin.updateStatusBar();
-					}
-				}));
+			.addToggle(toggle => {
+				makeToggleAccessible(toggle, "Show selection count in status bar", this.plugin.settings.showStatusBarCount);
+				toggle
+					.setValue(this.plugin.settings.showStatusBarCount)
+					.onChange(async (value) => {
+						updateToggleAriaChecked(toggle, value);
+						if (await this.updateSetting("showStatusBarCount", value)) {
+							this.plugin.updateStatusBar();
+						}
+					});
+			});
 
 		const propertiesHeading = new Setting(containerEl)
 			.setName("Properties")
