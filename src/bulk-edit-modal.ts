@@ -1,6 +1,6 @@
-import {App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
+import {AbstractInputSuggest, App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
-import {getSelectedFiles} from "./files";
+import {getPropertyValues, getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
@@ -47,6 +47,46 @@ function coerceValue(raw: string, type: string): unknown {
 				.filter(s => s.length > 0);
 		default:
 			return raw;
+	}
+}
+
+class PropertyValueSuggest extends AbstractInputSuggest<string> {
+	private knownValues: string[];
+	private currentPills: () => string[];
+	private normalizeFn: (v: string) => string;
+
+	constructor(
+		app: App,
+		inputEl: HTMLInputElement,
+		knownValues: string[],
+		currentPills: () => string[],
+		normalize: (v: string) => string,
+	) {
+		super(app, inputEl);
+		this.knownValues = knownValues;
+		this.currentPills = currentPills;
+		this.normalizeFn = normalize;
+	}
+
+	override getSuggestions(query: string): string[] {
+		const lower = this.normalizeFn(query).toLowerCase();
+		const existing = new Set(this.currentPills().map(this.normalizeFn));
+		return this.knownValues.filter(v =>
+			this.normalizeFn(v).toLowerCase().includes(lower)
+			&& !existing.has(this.normalizeFn(v)),
+		);
+	}
+
+	override renderSuggestion(value: string, el: HTMLElement): void {
+		el.setText(value);
+	}
+
+	override selectSuggestion(
+		value: string,
+		_evt: MouseEvent | KeyboardEvent,
+	): void {
+		this.setValue("");
+		this.close();
 	}
 }
 
@@ -422,6 +462,24 @@ export class BulkEditModal extends Modal {
 					syncRawValue();
 					pillInput.focus();
 				};
+
+				const knownValues = getPropertyValues(this.app, this.selectedProperty);
+				if (knownValues.length > 0) {
+					const normalize = type === "tags"
+						? (v: string) => v.replace(/^#/, "")
+						: (v: string) => v;
+					const suggest = new PropertyValueSuggest(
+						this.app,
+						pillInput,
+						knownValues,
+						() => pills,
+						normalize,
+					);
+					suggest.onSelect((value) => {
+						addPill(value, true);
+						this.updateCountText();
+					});
+				}
 
 				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
 					if (e.isComposing) return;
