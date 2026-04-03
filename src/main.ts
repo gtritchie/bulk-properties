@@ -10,6 +10,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 	settings!: BulkPropertiesSettings;
 	private statusBarEl: HTMLElement | null = null;
 	private statusBarTimer: ReturnType<typeof setTimeout> | null = null;
+	private saveQueue: Promise<void> = Promise.resolve();
 
 	override async onload() {
 		await this.loadSettings();
@@ -167,7 +168,15 @@ export default class BulkPropertiesPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Serializes all settings writes through a queue so concurrent
+	 * callers (settings tab, bulk-edit modal, etc.) cannot race.
+	 */
 	async saveSettings() {
-		await this.saveData(this.settings);
+		const save = this.saveQueue.then(async () => {
+			await this.saveData(this.settings);
+		});
+		this.saveQueue = save.then(() => {}, () => {});
+		await save;
 	}
 }
