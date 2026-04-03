@@ -16,10 +16,10 @@ Generate release notes by gathering merged PRs since the last GitHub release, ca
 gh release view --latest --json tagName
 ```
 
-Then get the commit date of that tag (not the release publish date, which can differ if the release was drafted first and published later):
+Then get the committer date of that tag's commit (not the release publish date, which can differ if the release was drafted first and published later; and not the author date, which can be stale if the commit was rebased or cherry-picked):
 
 ```bash
-git log -1 --format=%aI TAG_NAME
+git log -1 --format=%cI TAG_NAME
 ```
 
 ### 2. Gather merged PRs since that tag
