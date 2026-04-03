@@ -19,10 +19,14 @@ function getAllPropertyNames(app: App): string[] {
 
 class PropertyNameSuggest extends AbstractInputSuggest<string> {
 	onSuggestionSelected?: () => void;
+	exclude: () => Set<string> = () => new Set();
 
 	override getSuggestions(query: string): string[] {
 		const lower = query.toLowerCase();
-		return getAllPropertyNames(this.app).filter(name => name.toLowerCase().includes(lower));
+		const excluded = this.exclude();
+		return getAllPropertyNames(this.app).filter(
+			name => name.toLowerCase().includes(lower) && !excluded.has(name),
+		);
 	}
 
 	override renderSuggestion(value: string, el: HTMLElement): void {
@@ -242,6 +246,11 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
 				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
+				suggest.exclude = () => {
+					const names = this.plugin.settings.properties.map(p => p.name);
+					names.push(this.plugin.settings.selectionProperty);
+					return new Set(names);
+				};
 				suggest.onSuggestionSelected = () => {
 					tryAutoDetect();
 					updateAddButton();
@@ -276,6 +285,12 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						const newName = nameInputEl.value.trim();
 						if (!newName || newType === "") {
+							return;
+						}
+						if (newName === this.plugin.settings.selectionProperty) {
+							new Notice(
+								`"${newName}" is the selection property and cannot be added`,
+							);
 							return;
 						}
 						if (this.plugin.settings.properties.some(
