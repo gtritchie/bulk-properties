@@ -81,6 +81,8 @@ class PropertyValueSuggest extends AbstractInputSuggest<string> {
 		el.setText(value);
 	}
 
+	onValueSelected?: (value: string, evt: MouseEvent | KeyboardEvent) => void;
+
 	override selectSuggestion(
 		value: string,
 		evt: MouseEvent | KeyboardEvent,
@@ -90,6 +92,7 @@ class PropertyValueSuggest extends AbstractInputSuggest<string> {
 		}
 		this.setValue("");
 		this.close();
+		this.onValueSelected?.(value, evt);
 	}
 
 	/**
@@ -492,10 +495,10 @@ export class BulkEditModal extends Modal {
 						() => pills,
 						normalize,
 					);
-					suggest.onSelect((value) => {
+					suggest.onValueSelected = (value) => {
 						addPill(value, true);
 						this.updateCountText();
-					});
+					};
 				}
 
 				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
