@@ -6,6 +6,15 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 
 **Note:** The plugin operates on all files in the vault that have the selection property checked, not just files visible in a particular Base. Make sure to uncheck the selection property on files you don't want to modify.
 
+## Setup
+
+Before using the command, configure the plugin in **Settings → Bulk Properties**:
+
+- **Selection property** — the name of the checkbox property used to mark files as selected (default: `selected`). Autocompletes from existing vault properties.
+- **Properties** — add the properties you want to be available for bulk editing, specifying the name and type for each. Property names autocomplete from the vault. Supported types: Aliases, Checkbox, Date, Date & time, List, Number, Tags, Text.
+- **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog (default: on).
+- **Show selection count in status bar** — displays the number of selected files in the status bar (default: on). The count updates automatically as you check or uncheck the selection property. Status bar items are not available on mobile.
+
 ## Usage
 
 1. Add a checkbox property (such as `selected`) to your notes or Base view.
@@ -25,15 +34,6 @@ This plugin uses a checkbox property (default: `selected`) to track which files 
 
 - **Editor menu** — right-click inside an editor to open the bulk edit dialog.
 - **File menu** — right-click a markdown file in the file explorer or a Base view to toggle its selection. The menu item reads **Select for bulk edit** or **Deselect for bulk edit** based on the file's current state.
-
-## Setup
-
-Before using the command, configure the plugin in **Settings → Bulk Properties**:
-
-- **Selection property** — the name of the checkbox property used to mark files as selected (default: `selected`). Autocompletes from existing vault properties.
-- **Properties** — add the properties you want to be available for bulk editing, specifying the name and type for each. Property names autocomplete from the vault. Supported types: text, number, checkbox, date, datetime, tags, aliases, multitext.
-- **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog (default: on).
-- **Show selection count in status bar** — displays the number of selected files in the status bar (default: on). The count updates automatically as you check or uncheck the selection property. Status bar items are not available on mobile.
 
 ## Manual Installation
 
