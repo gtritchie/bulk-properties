@@ -1,3 +1,9 @@
+---
+name: release-notes
+description: Generate user-facing release notes for the Bulk Properties Obsidian plugin by examining merged PRs since the last GitHub release. Invoke manually with /release-notes when preparing a new release.
+invoke: user
+---
+
 # Release Notes Generator
 
 Generate release notes by gathering merged PRs since the last GitHub release, categorizing them by impact, and writing a concise markdown summary focused on what matters to plugin users.
