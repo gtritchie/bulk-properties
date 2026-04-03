@@ -483,7 +483,7 @@ export class BulkEditModal extends Modal {
 					getPropertyValues(this.app, this.selectedProperty)
 						.map(normalize)
 						.filter(v => v !== ""),
-				)];
+				)].sort((a, b) => a.localeCompare(b));
 				if (knownValues.length > 0) {
 					suggest = new PropertyValueSuggest(
 						this.app,
