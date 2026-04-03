@@ -211,7 +211,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			const prop = this.plugin.settings.properties[i]!;
 			new Setting(containerEl)
 				.setName(prop.name)
-				.setDesc(prop.type)
+				.setDesc(PROPERTY_TYPE_LABELS[prop.type])
 				.addButton(btn => btn
 					.setButtonText("Remove")
 					.onClick(async () => {
