@@ -56,6 +56,17 @@ export const PROPERTY_TYPES = [
 
 export type PropertyType = typeof PROPERTY_TYPES[number];
 
+const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+	aliases: "Aliases",
+	checkbox: "Checkbox",
+	date: "Date",
+	datetime: "Date & time",
+	multitext: "List",
+	number: "Number",
+	tags: "Tags",
+	text: "Text",
+};
+
 // Uses Obsidian's undocumented metadataTypeManager to look up the type
 // assigned to a property in Settings → Properties. Returns null if the
 // API is unavailable, the property is unknown, or the widget value
@@ -269,8 +280,10 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				placeholder.disabled = true;
 				placeholder.selected = true;
 
-				for (const t of PROPERTY_TYPES) {
-					dropdown.addOption(t, t);
+				const sorted = Object.entries(PROPERTY_TYPE_LABELS)
+					.sort(([, a], [, b]) => a.localeCompare(b));
+				for (const [value, label] of sorted) {
+					dropdown.addOption(value, label);
 				}
 				dropdown.onChange(value => {
 					newType = value as PropertyType;
