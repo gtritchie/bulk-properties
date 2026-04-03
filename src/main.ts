@@ -169,14 +169,20 @@ export default class BulkPropertiesPlugin extends Plugin {
 	}
 
 	/**
-	 * Serializes all settings writes through a queue so concurrent
-	 * callers (settings tab, bulk-edit modal, etc.) cannot race.
+	 * Serializes settings writes through a queue with copy-on-write
+	 * semantics. Builds a candidate snapshot per call; only assigns
+	 * it to `this.settings` after persistence succeeds.
 	 */
-	async saveSettings() {
+	updateSetting<K extends keyof BulkPropertiesSettings>(
+		key: K,
+		value: BulkPropertiesSettings[K],
+	): Promise<void> {
 		const save = this.saveQueue.then(async () => {
-			await this.saveData(this.settings);
+			const candidate = {...this.settings, [key]: value};
+			await this.saveData(candidate);
+			this.settings = candidate;
 		});
 		this.saveQueue = save.then(() => {}, () => {});
-		await save;
+		return save;
 	}
 }

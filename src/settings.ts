@@ -105,16 +105,15 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Updates a single setting key and persists via the plugin's
-	 * serialized save queue.
+	 * Updates a single setting key via the plugin's serialized
+	 * copy-on-write save queue.
 	 */
 	private async updateSetting<K extends keyof BulkPropertiesSettings>(
 		key: K,
 		value: BulkPropertiesSettings[K],
 	): Promise<boolean> {
-		this.plugin.settings[key] = value;
 		try {
-			await this.plugin.saveSettings();
+			await this.plugin.updateSetting(key, value);
 			return true;
 		} catch (err: unknown) {
 			console.error("bulk-properties: failed to save settings:", err);
