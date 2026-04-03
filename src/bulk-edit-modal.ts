@@ -725,13 +725,19 @@ export class BulkEditModal extends Modal {
 							fm[property] = value;
 						} else {
 							const existing = fm[property];
-							if (existing !== undefined && !Array.isArray(existing)) {
+							let current: unknown[];
+							if (existing === undefined) {
+								current = [];
+							} else if (Array.isArray(existing)) {
+								current = existing;
+							} else if (typeof existing === "string") {
+								current = existing === "" ? [] : [existing];
+							} else {
 								skipped = true;
 								return;
 							}
 							const newValues = value as string[];
 							if (action === "merge") {
-								const current: unknown[] = Array.isArray(existing) ? existing : [];
 								const seen = new Set(current.map(String));
 								const toAdd: string[] = [];
 								for (const v of newValues) {
@@ -747,7 +753,7 @@ export class BulkEditModal extends Modal {
 									return;
 								}
 								const removeSet = new Set(newValues);
-								fm[property] = existing.filter(
+								fm[property] = current.filter(
 									v => !removeSet.has(String(v)),
 								);
 							}
