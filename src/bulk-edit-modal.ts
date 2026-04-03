@@ -83,17 +83,21 @@ class PropertyValueSuggest extends AbstractInputSuggest<string> {
 
 	override selectSuggestion(
 		value: string,
-		_evt: MouseEvent | KeyboardEvent,
+		evt: MouseEvent | KeyboardEvent,
 	): void {
-		this.didSelect = true;
+		if (evt instanceof MouseEvent) {
+			this.didSelect = true;
+		}
 		this.setValue("");
 		this.close();
 	}
 
 	/**
-	 * Set to true during selectSuggestion. The pill container's focusout
-	 * handler defers its commit and checks this flag to avoid committing
-	 * partial query text as a pill when the user clicks a suggestion.
+	 * Set to true when a suggestion is selected via mouse click. The pill
+	 * container's focusout handler defers its commit and checks this flag
+	 * to avoid committing partial query text as a pill. Only mouse clicks
+	 * cause the focusout race; keyboard selections are captured by the
+	 * suggest's Scope before focusout fires.
 	 */
 	didSelect = false;
 }
