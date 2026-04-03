@@ -19,10 +19,14 @@ function getAllPropertyNames(app: App): string[] {
 
 class PropertyNameSuggest extends AbstractInputSuggest<string> {
 	onSuggestionSelected?: () => void;
+	exclude: () => Set<string> = () => new Set();
 
 	override getSuggestions(query: string): string[] {
 		const lower = query.toLowerCase();
-		return getAllPropertyNames(this.app).filter(name => name.toLowerCase().includes(lower));
+		const excluded = this.exclude();
+		return getAllPropertyNames(this.app).filter(
+			name => name.toLowerCase().includes(lower) && !excluded.has(name),
+		);
 	}
 
 	override renderSuggestion(value: string, el: HTMLElement): void {
@@ -242,6 +246,9 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
 				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
+				suggest.exclude = () => new Set(
+					this.plugin.settings.properties.map(p => p.name),
+				);
 				suggest.onSuggestionSelected = () => {
 					tryAutoDetect();
 					updateAddButton();
