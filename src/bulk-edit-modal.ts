@@ -85,9 +85,17 @@ class PropertyValueSuggest extends AbstractInputSuggest<string> {
 		value: string,
 		_evt: MouseEvent | KeyboardEvent,
 	): void {
+		this.didSelect = true;
 		this.setValue("");
 		this.close();
 	}
+
+	/**
+	 * Set to true during selectSuggestion. The pill container's focusout
+	 * handler defers its commit and checks this flag to avoid committing
+	 * partial query text as a pill when the user clicks a suggestion.
+	 */
+	didSelect = false;
 }
 
 export class BulkEditModal extends Modal {
@@ -463,12 +471,13 @@ export class BulkEditModal extends Modal {
 					pillInput.focus();
 				};
 
+				let suggest: PropertyValueSuggest | null = null;
 				const knownValues = getPropertyValues(this.app, this.selectedProperty);
 				if (knownValues.length > 0) {
 					const normalize = type === "tags"
 						? (v: string) => v.replace(/^#/, "")
 						: (v: string) => v;
-					const suggest = new PropertyValueSuggest(
+					suggest = new PropertyValueSuggest(
 						this.app,
 						pillInput,
 						knownValues,
@@ -532,13 +541,24 @@ export class BulkEditModal extends Modal {
 					) {
 						return;
 					}
-					if (pillInput.value.trim() !== "") {
-						const val = pillInput.value;
-						pillInput.value = "";
-						if (!addPill(val)) {
-							pillInput.value = val;
+					const commitPending = () => {
+						if (suggest?.didSelect) {
+							suggest.didSelect = false;
+							return;
 						}
-						this.updateCountText();
+						if (pillInput.value.trim() !== "") {
+							const val = pillInput.value;
+							pillInput.value = "";
+							if (!addPill(val)) {
+								pillInput.value = val;
+							}
+							this.updateCountText();
+						}
+					};
+					if (suggest) {
+						requestAnimationFrame(commitPending);
+					} else {
+						commitPending();
 					}
 				});
 
