@@ -8,7 +8,7 @@ import type {ToggleComponent} from "obsidian";
  * state. This helper:
  * - removes the native input from the tab order and accessibility tree
  * - adds role="switch" with correct aria-checked on the label
- * - handles Space key to toggle
+ * - handles Space (on keyup) and Enter (on keydown) to toggle
  *
  * Callers must update aria-checked in their onChange callback via
  * `updateToggleAriaChecked`.
@@ -23,6 +23,15 @@ export function makeToggleAccessible(
 	el.setAttribute("aria-label", label);
 	el.setAttribute("aria-checked", String(initialValue));
 	el.addEventListener("keydown", (e: KeyboardEvent) => {
+		if (e.repeat) return;
+		if (e.key === " ") {
+			e.preventDefault();
+		} else if (e.key === "Enter") {
+			e.preventDefault();
+			toggle.onClick();
+		}
+	});
+	el.addEventListener("keyup", (e: KeyboardEvent) => {
 		if (e.key === " ") {
 			e.preventDefault();
 			toggle.onClick();
