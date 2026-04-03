@@ -1,6 +1,6 @@
-import {App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
+import {AbstractInputSuggest, App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
-import {getSelectedFiles} from "./files";
+import {getPropertyValues, getSelectedFiles} from "./files";
 import {confirmEmptyValue} from "./confirm-modal";
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
@@ -48,6 +48,61 @@ function coerceValue(raw: string, type: string): unknown {
 		default:
 			return raw;
 	}
+}
+
+class PropertyValueSuggest extends AbstractInputSuggest<string> {
+	private knownValues: string[];
+	private currentPills: () => string[];
+	private normalizeFn: (v: string) => string;
+
+	constructor(
+		app: App,
+		inputEl: HTMLInputElement,
+		knownValues: string[],
+		currentPills: () => string[],
+		normalize: (v: string) => string,
+	) {
+		super(app, inputEl);
+		this.knownValues = knownValues;
+		this.currentPills = currentPills;
+		this.normalizeFn = normalize;
+	}
+
+	override getSuggestions(query: string): string[] {
+		const lower = this.normalizeFn(query).toLowerCase();
+		const existing = new Set(this.currentPills().map(this.normalizeFn));
+		return this.knownValues.filter(v =>
+			this.normalizeFn(v).toLowerCase().includes(lower)
+			&& !existing.has(this.normalizeFn(v)),
+		);
+	}
+
+	override renderSuggestion(value: string, el: HTMLElement): void {
+		el.setText(value);
+	}
+
+	onValueSelected?: (value: string, evt: MouseEvent | KeyboardEvent) => void;
+
+	override selectSuggestion(
+		value: string,
+		evt: MouseEvent | KeyboardEvent,
+	): void {
+		if (evt instanceof MouseEvent) {
+			this.didSelect = true;
+		}
+		this.setValue("");
+		this.close();
+		this.onValueSelected?.(value, evt);
+	}
+
+	/**
+	 * Set to true when a suggestion is selected via mouse click. The pill
+	 * container's focusout handler defers its commit and checks this flag
+	 * to avoid committing partial query text as a pill. Only mouse clicks
+	 * cause the focusout race; keyboard selections are captured by the
+	 * suggest's Scope before focusout fires.
+	 */
+	didSelect = false;
 }
 
 export class BulkEditModal extends Modal {
@@ -423,6 +478,29 @@ export class BulkEditModal extends Modal {
 					pillInput.focus();
 				};
 
+				let suggest: PropertyValueSuggest | null = null;
+				const normalize = type === "tags"
+					? (v: string) => v.replace(/^#/, "")
+					: (v: string) => v;
+				const knownValues = [...new Set(
+					getPropertyValues(this.app, this.selectedProperty)
+						.map(normalize)
+						.filter(v => v !== ""),
+				)].sort((a, b) => a.localeCompare(b));
+				if (knownValues.length > 0) {
+					suggest = new PropertyValueSuggest(
+						this.app,
+						pillInput,
+						knownValues,
+						() => pills,
+						normalize,
+					);
+					suggest.onValueSelected = (value) => {
+						addPill(value, true);
+						this.updateCountText();
+					};
+				}
+
 				pillInput.addEventListener("keydown", (e: KeyboardEvent) => {
 					if (e.isComposing) return;
 					if (e.key === "Enter" || e.key === ",") {
@@ -474,13 +552,24 @@ export class BulkEditModal extends Modal {
 					) {
 						return;
 					}
-					if (pillInput.value.trim() !== "") {
-						const val = pillInput.value;
-						pillInput.value = "";
-						if (!addPill(val)) {
-							pillInput.value = val;
+					const commitPending = () => {
+						if (suggest?.didSelect) {
+							suggest.didSelect = false;
+							return;
 						}
-						this.updateCountText();
+						if (pillInput.value.trim() !== "") {
+							const val = pillInput.value;
+							pillInput.value = "";
+							if (!addPill(val)) {
+								pillInput.value = val;
+							}
+							this.updateCountText();
+						}
+					};
+					if (suggest) {
+						requestAnimationFrame(commitPending);
+					} else {
+						commitPending();
 					}
 				});
 
