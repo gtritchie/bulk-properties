@@ -152,13 +152,11 @@ export class BulkEditModal extends Modal {
 					.onChange(value => {
 						this.deselectWhenFinished = value;
 					});
-				toggle.toggleEl.setAttribute("aria-label", "Deselect when finished");
-				toggle.toggleEl.addEventListener("keydown", (e: KeyboardEvent) => {
-					if (e.key === " ") {
-						e.preventDefault();
-						toggle.onClick();
-					}
-				});
+				toggle.toggleEl.removeAttribute("tabindex");
+				const input = toggle.toggleEl.querySelector("input");
+				if (input) {
+					input.setAttribute("aria-label", "Deselect when finished");
+				}
 			});
 
 		new Setting(contentEl)
