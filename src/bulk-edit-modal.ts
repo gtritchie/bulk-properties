@@ -476,11 +476,15 @@ export class BulkEditModal extends Modal {
 				};
 
 				let suggest: PropertyValueSuggest | null = null;
-				const knownValues = getPropertyValues(this.app, this.selectedProperty);
+				const normalize = type === "tags"
+					? (v: string) => v.replace(/^#/, "")
+					: (v: string) => v;
+				const knownValues = [...new Set(
+					getPropertyValues(this.app, this.selectedProperty)
+						.map(normalize)
+						.filter(v => v !== ""),
+				)];
 				if (knownValues.length > 0) {
-					const normalize = type === "tags"
-						? (v: string) => v.replace(/^#/, "")
-						: (v: string) => v;
 					suggest = new PropertyValueSuggest(
 						this.app,
 						pillInput,
