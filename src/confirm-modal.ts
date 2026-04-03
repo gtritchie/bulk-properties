@@ -62,3 +62,15 @@ export function confirmEmptyValue(
 		new ConfirmModal(app, message, resolve).open();
 	});
 }
+
+export function confirmReplace(
+	app: App,
+	property: string,
+	fileCount: number,
+): Promise<boolean> {
+	const noun = fileCount === 1 ? "file" : "files";
+	const message = `This will replace all existing "${property}" values on ${fileCount} ${noun}. Existing values will be lost.`;
+	return new Promise<boolean>(resolve => {
+		new ConfirmModal(app, message, resolve).open();
+	});
+}
