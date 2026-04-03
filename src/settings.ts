@@ -246,9 +246,11 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				search.onChange(() => updateAddButton());
 				nameInputEl = search.inputEl;
 				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
-				suggest.exclude = () => new Set(
-					this.plugin.settings.properties.map(p => p.name),
-				);
+				suggest.exclude = () => {
+					const names = this.plugin.settings.properties.map(p => p.name);
+					names.push(this.plugin.settings.selectionProperty);
+					return new Set(names);
+				};
 				suggest.onSuggestionSelected = () => {
 					tryAutoDetect();
 					updateAddButton();
@@ -283,6 +285,12 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						const newName = nameInputEl.value.trim();
 						if (!newName || newType === "") {
+							return;
+						}
+						if (newName === this.plugin.settings.selectionProperty) {
+							new Notice(
+								`"${newName}" is the selection property and cannot be added`,
+							);
 							return;
 						}
 						if (this.plugin.settings.properties.some(
