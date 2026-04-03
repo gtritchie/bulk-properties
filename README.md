@@ -17,7 +17,7 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 
 ## Usage
 
-1. Add a checkbox property (such as `selected`) to your notes or Base view.
+1. Add the selection property to your notes or Base view.
 2. Check the box on each file you want to bulk edit.
 3. Open the bulk edit dialog from the ribbon icon, the **Bulk edit selected files** command, or the editor right-click menu.
 4. Review the file checklist — uncheck any files you don't want to modify, or re-check files you do.
@@ -38,7 +38,7 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 ## Manual Installation
 
 > [!NOTE]
-> These instructions are for installing and testing the plugin prior to its available in the Obsidian Community Plugins list.
+> These instructions are for installing and testing the plugin before it is available in the Obsidian Community Plugins list.
 
 Recommended approach is to use the BRAT plugin (available as a Community Plugin) and point it at this repository.
 
