@@ -4,21 +4,25 @@ Generate release notes by gathering merged PRs since the last GitHub release, ca
 
 ## Process
 
-### 1. Find the latest release
+### 1. Find the latest release tag
 
 ```bash
-gh release view --latest --json tagName,publishedAt
+gh release view --latest --json tagName
 ```
 
-This gives you the tag name (for the version) and the date to use as the cutoff.
-
-### 2. Gather merged PRs since that release
+Then get the commit date of that tag (not the release publish date, which can differ if the release was drafted first and published later):
 
 ```bash
-gh pr list --state merged --search "merged:>RELEASE_DATE" --json number,title,body,mergedAt --limit 100
+git log -1 --format=%aI TAG_NAME
 ```
 
-Replace `RELEASE_DATE` with the `publishedAt` value from step 1 (ISO date format works).
+### 2. Gather merged PRs since that tag
+
+```bash
+gh pr list --state merged --search "merged:>TAG_COMMIT_DATE" --json number,title,body,mergedAt --limit 100
+```
+
+Replace `TAG_COMMIT_DATE` with the commit date from step 1 (ISO date format).
 
 ### 3. Analyze each PR
 
