@@ -1,7 +1,7 @@
 import {AbstractInputSuggest, App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getPropertyValues, getSelectedFiles} from "./files";
-import {confirmEmptyValue} from "./confirm-modal";
+import {confirmEmptyValue, confirmReplace} from "./confirm-modal";
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
@@ -49,6 +49,10 @@ function coerceValue(raw: string, type: string): unknown {
 			return raw;
 	}
 }
+
+type ArrayAction = "merge" | "replace" | "delete";
+
+const ARRAY_TYPES = new Set(["tags", "aliases", "multitext"]);
 
 class PropertyValueSuggest extends AbstractInputSuggest<string> {
 	private knownValues: string[];
@@ -120,6 +124,8 @@ export class BulkEditModal extends Modal {
 	private deselectAllBtn!: HTMLButtonElement;
 	private uiLocked = false;
 	private activePillInput: HTMLInputElement | null = null;
+	private arrayAction: ArrayAction = "merge";
+	private valueLabelEl: HTMLElement | null = null;
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app);
@@ -327,14 +333,50 @@ export class BulkEditModal extends Modal {
 		return prop?.type ?? "text";
 	}
 
+	private updateValueLabel() {
+		if (!this.valueLabelEl) return;
+		switch (this.arrayAction) {
+			case "merge":
+				this.valueLabelEl.textContent = "Values to add";
+				break;
+			case "delete":
+				this.valueLabelEl.textContent = "Values to remove";
+				break;
+			default:
+				this.valueLabelEl.textContent = "New value";
+		}
+	}
+
 	private renderValueInput() {
 		this.valueContainerEl.empty();
 		this.rawValue = "";
 		this.activePillInput = null;
+		this.valueLabelEl = null;
 		this.updateCountText();
 		const type = this.getPropertyType(this.selectedProperty);
+		const isArrayType = ARRAY_TYPES.has(type);
 
-		const setting = new Setting(this.valueContainerEl).setName("New value");
+		if (isArrayType) {
+			this.arrayAction = "merge";
+			new Setting(this.valueContainerEl)
+				.setName("Action")
+				.addDropdown(dropdown => {
+					dropdown.addOption("merge", "Merge");
+					dropdown.addOption("replace", "Replace");
+					dropdown.addOption("delete", "Delete");
+					dropdown.setValue(this.arrayAction);
+					dropdown.onChange((value: string) => {
+						this.arrayAction = value as ArrayAction;
+						this.updateValueLabel();
+					});
+				});
+		}
+
+		const setting = new Setting(this.valueContainerEl)
+			.setName(isArrayType ? "Values to add" : "New value");
+		if (isArrayType) {
+			this.valueLabelEl = setting.nameEl;
+		}
 
 		switch (type) {
 			case "checkbox":
@@ -619,7 +661,16 @@ export class BulkEditModal extends Modal {
 
 		const property = this.selectedProperty;
 		const type = this.getPropertyType(property);
+		const isArrayType = ARRAY_TYPES.has(type);
+		const action = isArrayType ? this.arrayAction : "replace";
 		const filesToUpdate = this.getCheckedFiles();
+
+		if (isArrayType && action !== "replace" && this.rawValue.trim() === "") {
+			this.uiLocked = false;
+			this.setUIEnabled(true);
+			new Notice("No values specified");
+			return;
+		}
 
 		if (type !== "checkbox" && this.rawValue.trim() === "") {
 			const confirmed = await confirmEmptyValue(this.app, property, filesToUpdate.length);
@@ -641,6 +692,15 @@ export class BulkEditModal extends Modal {
 			return;
 		}
 
+		if (isArrayType && action === "replace" && this.rawValue.trim() !== "") {
+			const confirmed = await confirmReplace(this.app, property, filesToUpdate.length);
+			if (!confirmed) {
+				this.uiLocked = false;
+				this.setUIEnabled(true);
+				return;
+			}
+		}
+
 		const selProp = this.plugin.settings.selectionProperty;
 		const deselect = this.deselectWhenFinished;
 
@@ -652,26 +712,63 @@ export class BulkEditModal extends Modal {
 
 		this.close();
 
+		let skippedCount = 0;
 		const result = await withProgress(
 			filesToUpdate,
 			"Updating",
 			async (file) => {
+				let skipped = false;
 				await this.app.fileManager.processFrontMatter(
 					file,
 					(fm: Record<string, unknown>) => {
-						fm[property] = value;
+						if (action === "replace") {
+							fm[property] = value;
+						} else {
+							const existing = fm[property];
+							if (existing !== undefined && !Array.isArray(existing)) {
+								skipped = true;
+								return;
+							}
+							const newValues = value as string[];
+							if (action === "merge") {
+								const current: unknown[] = Array.isArray(existing) ? existing : [];
+								const seen = new Set(current.map(String));
+								const toAdd: string[] = [];
+								for (const v of newValues) {
+									if (!seen.has(v)) {
+										seen.add(v);
+										toAdd.push(v);
+									}
+								}
+								fm[property] = [...current, ...toAdd];
+							} else {
+								if (existing === undefined) {
+									if (deselect) fm[selProp] = false;
+									return;
+								}
+								const removeSet = new Set(newValues);
+								fm[property] = existing.filter(
+									v => !removeSet.has(String(v)),
+								);
+							}
+						}
 						if (deselect) {
 							fm[selProp] = false;
 						}
 					},
 				);
+				if (skipped) skippedCount++;
 			},
 		);
 
-		const {succeeded, failed, cancelled, total} = result;
-		let msg = `Updated "${property}" in ${succeeded} file${succeeded === 1 ? "" : "s"}`;
+		const actualSucceeded = result.succeeded - skippedCount;
+		const {failed, cancelled, total} = result;
+		let msg = `Updated "${property}" in ${actualSucceeded} file${actualSucceeded === 1 ? "" : "s"}`;
 		if (cancelled) {
-			msg = `Updated "${property}" in ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
+			msg = `Updated "${property}" in ${actualSucceeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
+		}
+		if (skippedCount > 0) {
+			msg += `, skipped ${skippedCount} (non-list values)`;
 		}
 		if (failed.length > 0) {
 			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
