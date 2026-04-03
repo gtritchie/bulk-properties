@@ -98,7 +98,6 @@ export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 
 export class BulkPropertiesSettingTab extends PluginSettingTab {
 	plugin: BulkPropertiesPlugin;
-	private saveQueue: Promise<void> = Promise.resolve();
 
 	constructor(app: App, plugin: BulkPropertiesPlugin) {
 		super(app, plugin);
@@ -106,28 +105,21 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Serializes settings writes through a queue so overlapping
-	 * onChange calls cannot race. Each call snapshots the live
-	 * settings only after all prior saves have committed.
+	 * Updates a single setting key via the plugin's serialized
+	 * copy-on-write save queue.
 	 */
-	private updateSetting<K extends keyof BulkPropertiesSettings>(
+	private async updateSetting<K extends keyof BulkPropertiesSettings>(
 		key: K,
 		value: BulkPropertiesSettings[K],
 	): Promise<boolean> {
-		const result = this.saveQueue.then(async () => {
-			const candidate = {...this.plugin.settings, [key]: value};
-			try {
-				await this.plugin.saveData(candidate);
-				this.plugin.settings = candidate;
-				return true;
-			} catch (err: unknown) {
-				console.error("bulk-properties: failed to save settings:", err);
-				new Notice("Failed to save settings. Check disk space and permissions.");
-				return false;
-			}
-		});
-		this.saveQueue = result.then(() => {});
-		return result;
+		try {
+			await this.plugin.updateSetting(key, value);
+			return true;
+		} catch (err: unknown) {
+			console.error("bulk-properties: failed to save settings:", err);
+			new Notice("Failed to save settings. Check disk space and permissions.");
+			return false;
+		}
 	}
 
 	display(): void {

@@ -644,9 +644,8 @@ export class BulkEditModal extends Modal {
 		const selProp = this.plugin.settings.selectionProperty;
 		const deselect = this.deselectWhenFinished;
 
-		this.plugin.settings.lastSelectedProperty = property;
 		try {
-			await this.plugin.saveSettings();
+			await this.plugin.updateSetting("lastSelectedProperty", property);
 		} catch (err: unknown) {
 			console.warn("bulk-properties: failed to save lastSelectedProperty:", err);
 		}
