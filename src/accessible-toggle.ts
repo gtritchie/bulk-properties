@@ -23,10 +23,9 @@ export function makeToggleAccessible(
 	el.setAttribute("aria-label", label);
 	el.setAttribute("aria-checked", String(initialValue));
 	el.addEventListener("keydown", (e: KeyboardEvent) => {
-		if (e.repeat) return;
 		if (e.key === " ") {
 			e.preventDefault();
-		} else if (e.key === "Enter") {
+		} else if (e.key === "Enter" && !e.repeat) {
 			e.preventDefault();
 			toggle.onClick();
 		}
