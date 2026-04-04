@@ -145,27 +145,31 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			.setName("Selection property")
 			.setDesc("The checkbox property used to mark files as selected")
 			.addSearch(search => {
+				const saveSelectionProperty = async (value: string) => {
+					const normalized = value.trim() || "selected";
+					if (normalized === this.plugin.settings.selectionProperty) {
+						if (value.trim() === "") {
+							search.setValue(normalized);
+						}
+						return;
+					}
+					if (await this.updateSetting("selectionProperty", normalized)) {
+						// Only reset the input if the user hasn't typed
+						// something new while the save was in flight
+						if (search.inputEl.value === value) {
+							search.setValue(normalized);
+						}
+						this.plugin.updateStatusBar();
+					}
+				};
 				search
 					.setPlaceholder("Selected")
 					.setValue(this.plugin.settings.selectionProperty)
-					.onChange(async (value) => {
-						const normalized = value.trim() || "selected";
-						if (normalized === this.plugin.settings.selectionProperty) {
-							if (value.trim() === "") {
-								search.setValue(normalized);
-							}
-							return;
-						}
-						if (await this.updateSetting("selectionProperty", normalized)) {
-							// Only reset the input if the user hasn't typed
-							// something new while the save was in flight
-							if (search.inputEl.value === value) {
-								search.setValue(normalized);
-							}
-							this.plugin.updateStatusBar();
-						}
-					});
-				new PropertyNameSuggest(this.app, search.inputEl);
+					.onChange(saveSelectionProperty);
+				const suggest = new PropertyNameSuggest(this.app, search.inputEl);
+				suggest.onSuggestionSelected = () => {
+					void saveSelectionProperty(search.inputEl.value);
+				};
 			});
 
 		new Setting(containerEl)
