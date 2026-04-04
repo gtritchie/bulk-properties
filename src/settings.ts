@@ -165,6 +165,14 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 							cls: "mod-warning",
 						});
 					}
+					const type = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
+					if (type !== null && type !== "checkbox") {
+						selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
+						selectionSetting.descEl.createEl("span", {
+							text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[type]} type`,
+							cls: "mod-warning",
+						});
+					}
 				};
 
 				const commitSelectionProperty = async () => {
@@ -218,6 +226,14 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
 			selectionSetting.descEl.createEl("span", {
 				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+				cls: "mod-warning",
+			});
+		}
+		const selectionType = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
+		if (selectionType !== null && selectionType !== "checkbox") {
+			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
+			selectionSetting.descEl.createEl("span", {
+				text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[selectionType]} type`,
 				cls: "mod-warning",
 			});
 		}
