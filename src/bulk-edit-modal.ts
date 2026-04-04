@@ -1,7 +1,7 @@
 import {AbstractInputSuggest, App, Modal, Notice, setIcon, Setting, TFile} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {getPropertyValues, getSelectedFiles} from "./files";
-import {confirmEmptyValue, confirmReplace} from "./confirm-modal";
+import {confirmDeleteFiles, confirmEmptyValue, confirmReplace} from "./confirm-modal";
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
@@ -53,6 +53,7 @@ function coerceValue(raw: string, type: string): unknown {
 type ArrayAction = "merge" | "replace" | "delete";
 
 const ARRAY_TYPES = new Set(["tags", "aliases", "multitext"]);
+const DEDUP_TYPES = new Set(["tags", "aliases"]);
 
 class PropertyValueSuggest extends AbstractInputSuggest<string> {
 	private knownValues: string[];
@@ -119,7 +120,8 @@ export class BulkEditModal extends Modal {
 	private countEl!: HTMLElement;
 	private pendingSaves: Map<TFile, Promise<void>> = new Map();
 	private fileCheckboxes: Map<TFile, HTMLInputElement> = new Map();
-	private updateBtn!: HTMLButtonElement;
+	private updateBtn?: HTMLButtonElement;
+	private deleteBtn!: HTMLButtonElement;
 	private selectAllBtn!: HTMLButtonElement;
 	private deselectAllBtn!: HTMLButtonElement;
 	private uiLocked = false;
@@ -140,7 +142,7 @@ export class BulkEditModal extends Modal {
 		const {settings} = this.plugin;
 		contentEl.addClass("bulk-properties-modal");
 
-		new Setting(contentEl).setName("Bulk edit properties").setHeading();
+		new Setting(contentEl).setName("Bulk edit selected files").setHeading();
 
 		if (this.fileSelection.size === 0) {
 			contentEl.createEl("p", {
@@ -180,8 +182,9 @@ export class BulkEditModal extends Modal {
 			});
 
 		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
+		const hasEditableProperties = editableProperties.length > 0;
 
-		if (editableProperties.length === 0) {
+		if (!hasEditableProperties) {
 			const p = contentEl.createEl("p");
 			p.appendText("No properties configured. Add properties in the ");
 			// eslint-disable-next-line obsidianmd/ui/sentence-case -- mid-sentence text
@@ -201,51 +204,63 @@ export class BulkEditModal extends Modal {
 				/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 			});
 			p.appendText(".");
-			return;
 		}
 
-		const lastSelected = settings.lastSelectedProperty;
-		const rememberedExists = lastSelected && editableProperties.some(p => p.name === lastSelected);
-		this.selectedProperty = rememberedExists ? lastSelected : editableProperties[0]?.name ?? "";
+		if (hasEditableProperties) {
+			const lastSelected = settings.lastSelectedProperty;
+			const rememberedExists = lastSelected && editableProperties.some(p => p.name === lastSelected);
+			this.selectedProperty = rememberedExists ? lastSelected : editableProperties[0]?.name ?? "";
 
-		new Setting(contentEl)
-			.setName("Property")
-			.addDropdown(dropdown => {
-				for (const prop of editableProperties) {
-					dropdown.addOption(prop.name, prop.name);
-				}
-				dropdown.setValue(this.selectedProperty);
-				dropdown.onChange(value => {
-					this.selectedProperty = value;
-					this.renderValueInput();
-				});
-			});
-
-		this.valueContainerEl = contentEl.createDiv();
-		this.renderValueInput();
-
-		new Setting(contentEl)
-			.setName("Deselect when finished")
-			.addToggle(toggle => {
-				makeToggleAccessible(toggle, "Deselect when finished", this.deselectWhenFinished);
-				toggle
-					.setValue(this.deselectWhenFinished)
-					.onChange(value => {
-						this.deselectWhenFinished = value;
-						updateToggleAriaChecked(toggle, value);
+			new Setting(contentEl)
+				.setName("Property")
+				.addDropdown(dropdown => {
+					for (const prop of editableProperties) {
+						dropdown.addOption(prop.name, prop.name);
+					}
+					dropdown.setValue(this.selectedProperty);
+					dropdown.onChange(value => {
+						this.selectedProperty = value;
+						this.renderValueInput();
 					});
-			});
+				});
 
-		new Setting(contentEl)
+			this.valueContainerEl = contentEl.createDiv();
+			this.renderValueInput();
+
+			new Setting(contentEl)
+				.setName("Deselect when finished")
+				.addToggle(toggle => {
+					makeToggleAccessible(toggle, "Deselect when finished", this.deselectWhenFinished);
+					toggle
+						.setValue(this.deselectWhenFinished)
+						.onChange(value => {
+							this.deselectWhenFinished = value;
+							updateToggleAriaChecked(toggle, value);
+						});
+				});
+		}
+
+		const footer = new Setting(contentEl)
 			.addButton(btn => {
 				btn
-					.setButtonText("Update")
+					.setButtonText("Delete selected files")
+					.setWarning()
+					.onClick(() => {
+						void this.doDelete();
+					});
+				this.deleteBtn = btn.buttonEl;
+			});
+		if (hasEditableProperties) {
+			footer.addButton(btn => {
+				btn
+					.setButtonText("Update properties")
 					.setCta()
 					.onClick(() => {
 						void this.doUpdate();
 					});
 				this.updateBtn = btn.buttonEl;
 			});
+		}
 	}
 
 	override onClose() {
@@ -262,10 +277,15 @@ export class BulkEditModal extends Modal {
 		const checked = this.getCheckedFiles().length;
 		const total = this.fileSelection.size;
 		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
-		if (this.updateBtn && !this.uiLocked) {
-			const hasUncommitted = this.activePillInput !== null
-				&& this.activePillInput.value.trim() !== "";
-			this.updateBtn.disabled = checked === 0 || hasUncommitted;
+		if (!this.uiLocked) {
+			if (this.updateBtn) {
+				const hasUncommitted = this.activePillInput !== null
+					&& this.activePillInput.value.trim() !== "";
+				this.updateBtn.disabled = checked === 0 || hasUncommitted;
+			}
+			if (this.deleteBtn) {
+				this.deleteBtn.disabled = checked === 0;
+			}
 		}
 	}
 
@@ -446,8 +466,7 @@ export class BulkEditModal extends Modal {
 			case "aliases":
 			case "multitext": {
 				const pills: string[] = [];
-				const dedupTypes = new Set(["tags", "aliases"]);
-				const shouldDedup = dedupTypes.has(type);
+				const shouldDedup = DEDUP_TYPES.has(type);
 
 				const syncRawValue = () => {
 					this.rawValue = pills.join(",");
@@ -664,10 +683,14 @@ export class BulkEditModal extends Modal {
 		}
 		if (this.selectAllBtn) this.selectAllBtn.disabled = !enabled;
 		if (this.deselectAllBtn) this.deselectAllBtn.disabled = !enabled;
+		const checkedCount = this.getCheckedFiles().length;
 		if (this.updateBtn) {
 			const hasUncommitted = this.activePillInput !== null
 				&& this.activePillInput.value.trim() !== "";
-			this.updateBtn.disabled = !enabled || this.getCheckedFiles().length === 0 || hasUncommitted;
+			this.updateBtn.disabled = !enabled || checkedCount === 0 || hasUncommitted;
+		}
+		if (this.deleteBtn) {
+			this.deleteBtn.disabled = !enabled || checkedCount === 0;
 		}
 	}
 
@@ -747,7 +770,7 @@ export class BulkEditModal extends Modal {
 						} else {
 							const existing = fm[property];
 							let current: unknown[];
-							if (existing === undefined) {
+							if (existing === undefined || existing === null) {
 								current = [];
 							} else if (Array.isArray(existing)) {
 								current = existing;
@@ -759,17 +782,21 @@ export class BulkEditModal extends Modal {
 							}
 							const newValues = value as string[];
 							if (action === "merge") {
-								const seen = new Set(current.map(String));
-								const toAdd: string[] = [];
-								for (const v of newValues) {
-									if (!seen.has(v)) {
-										seen.add(v);
-										toAdd.push(v);
+								if (DEDUP_TYPES.has(type)) {
+									const seen = new Set(current.map(String));
+									const toAdd: string[] = [];
+									for (const v of newValues) {
+										if (!seen.has(v)) {
+											seen.add(v);
+											toAdd.push(v);
+										}
 									}
+									fm[property] = [...current, ...toAdd];
+								} else {
+									fm[property] = [...current, ...newValues];
 								}
-								fm[property] = [...current, ...toAdd];
 							} else {
-								if (existing === undefined) {
+								if (existing === undefined || existing === null) {
 									if (deselect) fm[selProp] = false;
 									return;
 								}
@@ -796,6 +823,45 @@ export class BulkEditModal extends Modal {
 		}
 		if (skippedCount > 0) {
 			msg += `, skipped ${skippedCount} (non-list values)`;
+		}
+		if (failed.length > 0) {
+			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
+		}
+		new Notice(msg);
+	}
+
+	private async doDelete() {
+		this.uiLocked = true;
+		this.setUIEnabled(false);
+		await Promise.all(this.pendingSaves.values());
+
+		const filesToDelete = this.getCheckedFiles();
+		if (filesToDelete.length === 0) {
+			this.uiLocked = false;
+			this.setUIEnabled(true);
+			new Notice("No files selected");
+			return;
+		}
+
+		const confirmed = await confirmDeleteFiles(this.app, filesToDelete.length);
+		if (!confirmed) {
+			this.uiLocked = false;
+			this.setUIEnabled(true);
+			return;
+		}
+
+		this.close();
+
+		const result = await withProgress(
+			filesToDelete,
+			"Deleting",
+			(file) => this.app.fileManager.trashFile(file),
+		);
+
+		const {succeeded, failed, cancelled, total} = result;
+		let msg = `Deleted ${succeeded} file${succeeded === 1 ? "" : "s"}`;
+		if (cancelled) {
+			msg = `Deleted ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
 		}
 		if (failed.length > 0) {
 			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
