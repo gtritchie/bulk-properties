@@ -154,7 +154,7 @@ export class BulkEditModal extends Modal {
 
 		const listEl = contentEl.createDiv({cls: "bulk-properties-file-list"});
 		for (const [file, checked] of this.fileSelection) {
-			const row = listEl.createDiv({cls: "bulk-properties-file-row"});
+			const row = listEl.createEl("label", {cls: "bulk-properties-file-row"});
 			const checkbox = row.createEl("input", {type: "checkbox"});
 			checkbox.type = "checkbox";
 			checkbox.checked = checked;
