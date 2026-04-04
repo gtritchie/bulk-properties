@@ -73,6 +73,12 @@ const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 // doesn't match a recognized type.
 function detectPropertyType(app: App, name: string): PropertyType | null {
 	try {
+		// Only look up types for properties that exist in the vault.
+		// metadataTypeManager returns a default widget ("text") for unknown
+		// names, which would silently pre-fill the type dropdown.
+		const known = new Set(getAllPropertyNames(app));
+		if (!known.has(name)) return null;
+
 		// metadataTypeManager is an undocumented internal API — not in
 		// obsidian.d.ts. All access is runtime-guarded; the any cast and
 		// unsafe member accesses are intentional.
@@ -325,7 +331,6 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					value: "",
 					text: "Choose type\u2026",
 				});
-				placeholder.disabled = true;
 				placeholder.selected = true;
 
 				const sorted = Object.entries(PROPERTY_TYPE_LABELS)
