@@ -182,7 +182,20 @@ export class BulkEditModal extends Modal {
 		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
 
 		if (editableProperties.length === 0) {
-			contentEl.createEl("p", {text: "No properties configured. Add properties in the plugin settings."});
+			const p = contentEl.createEl("p");
+			p.appendText("No properties configured. Add properties in the ");
+			// eslint-disable-next-line obsidianmd/ui/sentence-case -- mid-sentence text
+			const link = p.createEl("a", {text: "plugin settings", href: "#"});
+			link.addEventListener("click", (e) => {
+				e.preventDefault();
+				this.close();
+				/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- undocumented Obsidian API */
+				const setting = (this.app as any).setting;
+				setting.open();
+				setting.openTabById(this.plugin.manifest.id);
+				/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+			});
+			p.appendText(".");
 			return;
 		}
 
