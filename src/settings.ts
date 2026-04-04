@@ -325,7 +325,6 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					value: "",
 					text: "Choose type\u2026",
 				});
-				placeholder.disabled = true;
 				placeholder.selected = true;
 
 				const sorted = Object.entries(PROPERTY_TYPE_LABELS)
