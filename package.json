@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-bulk-properties",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Bulk edit properties across multiple files in your vault",
 	"main": "main.js",
 	"type": "module",
