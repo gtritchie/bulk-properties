@@ -191,8 +191,13 @@ export class BulkEditModal extends Modal {
 				this.close();
 				/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- undocumented Obsidian API */
 				const setting = (this.app as any).setting;
-				setting.open();
-				setting.openTabById(this.plugin.manifest.id);
+				if (typeof setting?.open === "function" && typeof setting?.openTabById === "function") {
+					setting.open();
+					setting.openTabById(this.plugin.manifest.id);
+				} else {
+					// eslint-disable-next-line obsidianmd/ui/sentence-case -- navigation path
+					new Notice("Open Settings → Community plugins → Bulk Properties to configure properties.");
+				}
 				/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 			});
 			p.appendText(".");
