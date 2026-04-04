@@ -12,6 +12,12 @@
 	font-size: var(--font-ui-medium);
 }
 
+.bulk-properties-modal a:focus-visible {
+	outline: 2px solid var(--background-modifier-border-focus);
+	outline-offset: 2px;
+	border-radius: var(--radius-s);
+}
+
 .bulk-properties-file-list {
 	max-height: 200px;
 	overflow-y: auto;
