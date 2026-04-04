@@ -279,6 +279,7 @@ export class BulkEditModal extends Modal {
 			this.updateCountText();
 			if (!this.uiLocked) {
 				checkbox.disabled = false;
+				checkbox.focus();
 			}
 		});
 		this.pendingSaves.set(file, save);
