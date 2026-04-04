@@ -141,16 +141,22 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 		containerEl.empty();
 
-		new Setting(containerEl)
+		const selectionSetting = new Setting(containerEl)
 			.setName("Selection property")
 			.setDesc("The checkbox property used to mark files as selected")
 			.addSearch(search => {
+				const isConflicting = (name: string) =>
+					this.plugin.settings.properties.some(p => p.name === name);
+
 				const saveSelectionProperty = async (value: string) => {
 					const normalized = value.trim() || "selected";
 					if (normalized === this.plugin.settings.selectionProperty) {
 						if (value.trim() === "") {
 							search.setValue(normalized);
 						}
+						return;
+					}
+					if (isConflicting(normalized)) {
 						return;
 					}
 					if (await this.updateSetting("selectionProperty", normalized)) {
@@ -162,15 +168,40 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						this.plugin.updateStatusBar();
 					}
 				};
+
+				const rejectIfConflicting = () => {
+					const value = search.inputEl.value.trim() || "selected";
+					if (isConflicting(value)) {
+						new Notice(
+							`"${value}" is already a configured property`,
+						);
+						search.setValue(this.plugin.settings.selectionProperty);
+					}
+				};
+
 				search
 					.setPlaceholder("Selected")
 					.setValue(this.plugin.settings.selectionProperty)
 					.onChange(saveSelectionProperty);
+				search.inputEl.addEventListener("blur", rejectIfConflicting);
 				const suggest = new PropertyNameSuggest(this.app, search.inputEl);
+				suggest.exclude = () =>
+					new Set(this.plugin.settings.properties.map(p => p.name));
 				suggest.onSuggestionSelected = () => {
-					void saveSelectionProperty(search.inputEl.value);
+					void saveSelectionProperty(search.inputEl.value)
+						.then(rejectIfConflicting);
 				};
 			});
+
+		if (this.plugin.settings.properties.some(
+			p => p.name === this.plugin.settings.selectionProperty,
+		)) {
+			selectionSetting.descEl.createEl("br");
+			selectionSetting.descEl.createEl("span", {
+				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+				cls: "mod-warning",
+			});
+		}
 
 		new Setting(containerEl)
 			.setName("Deselect when finished")
