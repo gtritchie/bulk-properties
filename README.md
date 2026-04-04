@@ -1,8 +1,8 @@
 # Bulk Properties
 
-An [Obsidian](https://obsidian.md) plugin that lets you bulk edit a property across multiple files in your vault.
+An [Obsidian](https://obsidian.md) plugin that lets you bulk edit properties on, or delete, multiple files in your vault.
 
-This plugin uses a checkbox property (default: `selected`) to track which files are selected. Check the box on the files you want to edit, run the command, and update a property across all of them at once. Works well with Obsidian Bases, where the selection property can be displayed as a checkbox column.
+This plugin uses a checkbox property (default: `selected`) to track which files are selected. Check the box on the files you want to work with, run the command, then update a property across all of them at once or move them to the trash. Works well with Obsidian Bases, where the selection property can be displayed as a checkbox column.
 
 **Note:** The plugin operates on all files in the vault that have the selection property checked, not just files visible in a particular Base. Make sure to uncheck the selection property on files you don't want to modify.
 
@@ -21,8 +21,9 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 2. Check the box on each file you want to bulk edit.
 3. Open the bulk edit dialog from the ribbon icon, the **Bulk edit selected files** command, or the editor right-click menu.
 4. Review the file checklist — uncheck any files you don't want to modify, or re-check files you do.
-5. Choose a property from the dropdown, enter the new value, and select **Update**. For multi-value properties (Aliases, List, Tags), choose an action: **Merge** adds new values to existing ones, **Replace** overwrites the current values, and **Delete** removes matching values.
-6. Optionally disable **Deselect when finished** to keep the files selected after the update.
+5. Choose a property from the dropdown, enter the new value, and select **Update properties**. For multi-value properties (Aliases, List, Tags), choose an action: **Merge** adds new values to existing ones, **Replace** overwrites the current values, and **Delete** removes matching values.
+6. To delete the checked files instead, select **Delete selected files**. After a confirmation prompt, the files are moved to the trash using your Obsidian trash preference (**Settings → Files and links → Deleted files**).
+7. Optionally disable **Deselect when finished** to keep the files selected after the update.
 
 ## Commands
 
