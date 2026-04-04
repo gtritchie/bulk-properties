@@ -53,6 +53,7 @@ function coerceValue(raw: string, type: string): unknown {
 type ArrayAction = "merge" | "replace" | "delete";
 
 const ARRAY_TYPES = new Set(["tags", "aliases", "multitext"]);
+const DEDUP_TYPES = new Set(["tags", "aliases"]);
 
 class PropertyValueSuggest extends AbstractInputSuggest<string> {
 	private knownValues: string[];
@@ -465,8 +466,7 @@ export class BulkEditModal extends Modal {
 			case "aliases":
 			case "multitext": {
 				const pills: string[] = [];
-				const dedupTypes = new Set(["tags", "aliases"]);
-				const shouldDedup = dedupTypes.has(type);
+				const shouldDedup = DEDUP_TYPES.has(type);
 
 				const syncRawValue = () => {
 					this.rawValue = pills.join(",");
@@ -782,15 +782,19 @@ export class BulkEditModal extends Modal {
 							}
 							const newValues = value as string[];
 							if (action === "merge") {
-								const seen = new Set(current.map(String));
-								const toAdd: string[] = [];
-								for (const v of newValues) {
-									if (!seen.has(v)) {
-										seen.add(v);
-										toAdd.push(v);
+								if (DEDUP_TYPES.has(type)) {
+									const seen = new Set(current.map(String));
+									const toAdd: string[] = [];
+									for (const v of newValues) {
+										if (!seen.has(v)) {
+											seen.add(v);
+											toAdd.push(v);
+										}
 									}
+									fm[property] = [...current, ...toAdd];
+								} else {
+									fm[property] = [...current, ...newValues];
 								}
-								fm[property] = [...current, ...toAdd];
 							} else {
 								if (existing === undefined) {
 									if (deselect) fm[selProp] = false;
