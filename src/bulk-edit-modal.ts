@@ -770,7 +770,7 @@ export class BulkEditModal extends Modal {
 						} else {
 							const existing = fm[property];
 							let current: unknown[];
-							if (existing === undefined) {
+							if (existing === undefined || existing === null) {
 								current = [];
 							} else if (Array.isArray(existing)) {
 								current = existing;
@@ -796,7 +796,7 @@ export class BulkEditModal extends Modal {
 									fm[property] = [...current, ...newValues];
 								}
 							} else {
-								if (existing === undefined) {
+								if (existing === undefined || existing === null) {
 									if (deselect) fm[selProp] = false;
 									return;
 								}
