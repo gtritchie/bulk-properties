@@ -176,8 +176,11 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						search.setValue(this.plugin.settings.selectionProperty);
 						return;
 					}
+					const draft = search.inputEl.value;
 					if (await this.updateSetting("selectionProperty", normalized)) {
-						search.setValue(normalized);
+						if (search.inputEl.value === draft) {
+							search.setValue(normalized);
+						}
 						this.plugin.updateStatusBar();
 						updateWarning();
 					}
@@ -201,9 +204,17 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					window.clearTimeout(pendingBlur);
 					void commitSelectionProperty();
 				};
-
-				updateWarning();
 			});
+
+		if (this.plugin.settings.properties.some(
+			p => p.name === this.plugin.settings.selectionProperty,
+		)) {
+			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
+			selectionSetting.descEl.createEl("span", {
+				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+				cls: "mod-warning",
+			});
+		}
 
 		new Setting(containerEl)
 			.setName("Deselect when finished")
