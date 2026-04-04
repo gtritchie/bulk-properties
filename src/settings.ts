@@ -141,36 +141,80 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 		containerEl.empty();
 
-		new Setting(containerEl)
+		const selectionSetting = new Setting(containerEl)
 			.setName("Selection property")
 			.setDesc("The checkbox property used to mark files as selected")
 			.addSearch(search => {
-				const saveSelectionProperty = async (value: string) => {
-					const normalized = value.trim() || "selected";
+				const isConflicting = (name: string) =>
+					this.plugin.settings.properties.some(p => p.name === name);
+
+				const updateWarning = () => {
+					selectionSetting.descEl
+						.querySelectorAll(".mod-warning")
+						.forEach(el => el.remove());
+					if (isConflicting(this.plugin.settings.selectionProperty)) {
+						selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
+						selectionSetting.descEl.createEl("span", {
+							text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+							cls: "mod-warning",
+						});
+					}
+				};
+
+				const commitSelectionProperty = async () => {
+					const normalized = search.inputEl.value.trim() || "selected";
 					if (normalized === this.plugin.settings.selectionProperty) {
-						if (value.trim() === "") {
+						if (search.inputEl.value.trim() === "") {
 							search.setValue(normalized);
 						}
 						return;
 					}
+					if (isConflicting(normalized)) {
+						new Notice(
+							`"${normalized}" is already a configured property`,
+						);
+						search.setValue(this.plugin.settings.selectionProperty);
+						return;
+					}
+					const draft = search.inputEl.value;
 					if (await this.updateSetting("selectionProperty", normalized)) {
-						// Only reset the input if the user hasn't typed
-						// something new while the save was in flight
-						if (search.inputEl.value === value) {
+						if (search.inputEl.value === draft) {
 							search.setValue(normalized);
 						}
 						this.plugin.updateStatusBar();
+						updateWarning();
 					}
 				};
+
+				// Defer blur so a suggestion click can cancel it
+				let pendingBlur = 0;
+
 				search
 					.setPlaceholder("Selected")
-					.setValue(this.plugin.settings.selectionProperty)
-					.onChange(saveSelectionProperty);
+					.setValue(this.plugin.settings.selectionProperty);
+				search.inputEl.addEventListener("blur", () => {
+					pendingBlur = window.setTimeout(
+						() => void commitSelectionProperty(), 0,
+					);
+				});
 				const suggest = new PropertyNameSuggest(this.app, search.inputEl);
+				suggest.exclude = () =>
+					new Set(this.plugin.settings.properties.map(p => p.name));
 				suggest.onSuggestionSelected = () => {
-					void saveSelectionProperty(search.inputEl.value);
+					window.clearTimeout(pendingBlur);
+					void commitSelectionProperty();
 				};
 			});
+
+		if (this.plugin.settings.properties.some(
+			p => p.name === this.plugin.settings.selectionProperty,
+		)) {
+			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
+			selectionSetting.descEl.createEl("span", {
+				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+				cls: "mod-warning",
+			});
+		}
 
 		new Setting(containerEl)
 			.setName("Deselect when finished")
