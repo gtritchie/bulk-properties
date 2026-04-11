@@ -16,7 +16,7 @@ export interface WithProgressOptions {
 	awaitConsistency?: AwaitConsistency;
 	/** Quiet period after the last relevant event. Default 500 ms. */
 	quietWindowMs?: number;
-	/** Minimum post-write delay if no relevant event has been seen. Default 250 ms. */
+	/** Minimum settle phase duration, regardless of event activity. Default 250 ms. */
 	minimumFallbackWaitMs?: number;
 	/** Hard ceiling on settle wait. Default 1500 ms. */
 	consistencyTimeoutMs?: number;
@@ -148,9 +148,11 @@ export async function withProgress(
 
 				if (totalElapsed >= consistencyTimeoutMs) break;
 
-				if (anyRelevantEventSeen) {
-					if (now - lastRelevantEventAt >= quietWindowMs) break;
-				} else if (totalElapsed >= minimumFallbackWaitMs) {
+				if (
+					totalElapsed >= minimumFallbackWaitMs
+					&& anyRelevantEventSeen
+					&& now - lastRelevantEventAt >= quietWindowMs
+				) {
 					break;
 				}
 
