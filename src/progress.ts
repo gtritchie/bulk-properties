@@ -7,17 +7,19 @@ export interface ProgressResult {
 	total: number;
 }
 
-const CONCURRENCY = 8;
+const DEFAULT_CONCURRENCY = 8;
 
 /**
  * Iterates files with a cancelable progress notice, calling `action`
  * on each with bounded concurrency. Returns counts of succeeded/failed
- * and whether the user cancelled.
+ * and whether the user cancelled. Pass `concurrency: 1` for destructive
+ * actions where cancel should stop after at most one more file.
  */
 export async function withProgress(
 	files: TFile[],
 	label: string,
 	action: (file: TFile) => Promise<void>,
+	concurrency: number = DEFAULT_CONCURRENCY,
 ): Promise<ProgressResult> {
 	let cancelled = false;
 	const notice = new Notice("", 0);
@@ -41,7 +43,7 @@ export async function withProgress(
 	try {
 		textEl.textContent = `${label} 0 / ${files.length}...`;
 
-		const workerCount = Math.min(CONCURRENCY, files.length);
+		const workerCount = Math.min(concurrency, files.length);
 		const runWorker = async (): Promise<void> => {
 			while (!cancelled) {
 				const i = nextIndex++;
