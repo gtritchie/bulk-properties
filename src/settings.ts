@@ -149,7 +149,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 		const selectionSetting = new Setting(containerEl)
 			.setName("Selection property")
-			.setDesc("The checkbox property used to mark files as selected")
+			.setDesc("The checkbox property used to mark notes as selected")
 			.addSearch(search => {
 				const isConflicting = (name: string) =>
 					this.plugin.settings.properties.some(p => p.name === name);
@@ -253,7 +253,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Show selection count in status bar")
-			.setDesc("Display the number of selected files in the status bar")
+			.setDesc("Display the number of selected notes in the status bar")
 			.addToggle(toggle => {
 				makeToggleAccessible(toggle, "Show selection count in status bar", this.plugin.settings.showStatusBarCount);
 				toggle

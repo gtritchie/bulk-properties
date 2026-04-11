@@ -10,7 +10,7 @@ export async function deselectAll(
 	const files = getSelectedFiles(app, selectionProperty);
 
 	if (files.length === 0) {
-		new Notice("No files are selected");
+		new Notice("No notes are selected");
 		return;
 	}
 
@@ -33,15 +33,15 @@ export async function deselectAll(
 	const {succeeded, failed, cancelled, total} = result;
 	if (cancelled) {
 		new Notice(
-			`Deselected ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
+			`Deselected ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`,
 		);
 	} else if (failed.length === 0) {
 		new Notice(
-			`Deselected ${succeeded} file${succeeded === 1 ? "" : "s"}`,
+			`Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}`,
 		);
 	} else {
 		new Notice(
-			`Deselected ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
+			`Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
 		);
 	}
 }

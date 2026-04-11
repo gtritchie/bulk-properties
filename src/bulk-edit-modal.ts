@@ -142,11 +142,11 @@ export class BulkEditModal extends Modal {
 		const {settings} = this.plugin;
 		contentEl.addClass("bulk-properties-modal");
 
-		new Setting(contentEl).setName("Bulk edit selected files").setHeading();
+		new Setting(contentEl).setName("Bulk edit selected notes").setHeading();
 
 		if (this.fileSelection.size === 0) {
 			contentEl.createEl("p", {
-				text: `No files have the "${settings.selectionProperty}" property checked. Mark files by setting their "${settings.selectionProperty}" checkbox property to true.`,
+				text: `No notes have the "${settings.selectionProperty}" property checked. Mark notes by setting their "${settings.selectionProperty}" checkbox property to true.`,
 			});
 			return;
 		}
@@ -243,7 +243,7 @@ export class BulkEditModal extends Modal {
 		const footer = new Setting(contentEl)
 			.addButton(btn => {
 				btn
-					.setButtonText("Delete selected files")
+					.setButtonText("Delete selected notes")
 					.setWarning()
 					.onClick(() => {
 						void this.doDelete();
@@ -276,7 +276,7 @@ export class BulkEditModal extends Modal {
 	private updateCountText() {
 		const checked = this.getCheckedFiles().length;
 		const total = this.fileSelection.size;
-		this.countEl.setText(`${checked} of ${total} file${total === 1 ? "" : "s"} selected`);
+		this.countEl.setText(`${checked} of ${total} note${total === 1 ? "" : "s"} selected`);
 		if (!this.uiLocked) {
 			if (this.updateBtn) {
 				const hasUncommitted = this.activePillInput !== null
@@ -361,7 +361,7 @@ export class BulkEditModal extends Modal {
 
 			this.updateCountText();
 			if (failed.length > 0) {
-				new Notice(`Failed to update selection for ${failed.length} file${failed.length === 1 ? "" : "s"}: ${failed.join(", ")}`);
+				new Notice(`Failed to update selection for ${failed.length} note${failed.length === 1 ? "" : "s"}: ${failed.join(", ")}`);
 			}
 		} finally {
 			this.uiLocked = false;
@@ -817,9 +817,9 @@ export class BulkEditModal extends Modal {
 
 		const actualSucceeded = result.succeeded - skippedCount;
 		const {failed, cancelled, total} = result;
-		let msg = `Updated "${property}" in ${actualSucceeded} file${actualSucceeded === 1 ? "" : "s"}`;
+		let msg = `Updated "${property}" in ${actualSucceeded} note${actualSucceeded === 1 ? "" : "s"}`;
 		if (cancelled) {
-			msg = `Updated "${property}" in ${actualSucceeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
+			msg = `Updated "${property}" in ${actualSucceeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`;
 		}
 		if (skippedCount > 0) {
 			msg += `, skipped ${skippedCount} (non-list values)`;
@@ -839,7 +839,7 @@ export class BulkEditModal extends Modal {
 		if (filesToDelete.length === 0) {
 			this.uiLocked = false;
 			this.setUIEnabled(true);
-			new Notice("No files selected");
+			new Notice("No notes selected");
 			return;
 		}
 
@@ -859,9 +859,9 @@ export class BulkEditModal extends Modal {
 		);
 
 		const {succeeded, failed, cancelled, total} = result;
-		let msg = `Deleted ${succeeded} file${succeeded === 1 ? "" : "s"}`;
+		let msg = `Deleted ${succeeded} note${succeeded === 1 ? "" : "s"}`;
 		if (cancelled) {
-			msg = `Deleted ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`;
+			msg = `Deleted ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`;
 		}
 		if (failed.length > 0) {
 			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;

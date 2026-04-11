@@ -17,13 +17,13 @@ export default class BulkPropertiesPlugin extends Plugin {
 
 		this.statusBarEl = this.addStatusBarItem();
 
-		this.addRibbonIcon("list-checks", "Bulk edit selected files", () => {
+		this.addRibbonIcon("list-checks", "Bulk edit selected notes", () => {
 			new BulkEditModal(this.app, this).open();
 		});
 
 		this.addCommand({
 			id: "bulk-edit-selected",
-			name: "Bulk edit selected files",
+			name: "Bulk edit selected notes",
 			callback: () => {
 				new BulkEditModal(this.app, this).open();
 			},
@@ -31,7 +31,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 
 		this.addCommand({
 			id: "deselect-all",
-			name: "Deselect all files",
+			name: "Deselect all notes",
 			callback: () => {
 				void deselectAll(this.app, this.settings.selectionProperty);
 			},
@@ -39,7 +39,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 
 		this.addCommand({
 			id: "remove-selection-property",
-			name: "Remove selection property from all files",
+			name: "Remove selection property from all notes",
 			callback: () => {
 				removeSelectionProperty(
 					this.app,
@@ -65,7 +65,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu) => {
 				menu.addItem((item) => {
-					item.setTitle("Bulk edit selected files")
+					item.setTitle("Bulk edit selected notes")
 						.setIcon("list-checks")
 						.onClick(() => {
 							new BulkEditModal(this.app, this).open();
@@ -129,7 +129,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 		).length;
 		if (count > 0) {
 			this.statusBarEl.setText(
-				`${count} file${count === 1 ? "" : "s"} selected`,
+				`${count} note${count === 1 ? "" : "s"} selected`,
 			);
 		} else {
 			this.statusBarEl.empty();
