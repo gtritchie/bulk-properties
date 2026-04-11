@@ -141,6 +141,13 @@ export async function withProgress(
 		if (writesFullyProcessed && awaitConsistency !== "none" && !cancelRequested) {
 			textEl.textContent = `${indexingLabel}...`;
 
+			// Events fired during writes can't count toward the settle-phase
+			// quiet window — on long batches they'd be stale before the last
+			// file's event has even arrived. Reset so the quiet window is
+			// measured purely over the settle phase.
+			lastRelevantEventAt = 0;
+			anyRelevantEventSeen = false;
+
 			const settleStartedAt = Date.now();
 			while (!cancelRequested) {
 				const now = Date.now();
