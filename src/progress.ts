@@ -84,12 +84,10 @@ export async function withProgress(
 	let eventSource: {offref(ref: EventRef): void} | null = null;
 	let eventRef: EventRef | null = null;
 	let lastRelevantEventAt = 0;
-	let anyRelevantEventSeen = false;
 
 	if (awaitConsistency !== "none" && app) {
 		const onEvent = () => {
 			lastRelevantEventAt = Date.now();
-			anyRelevantEventSeen = true;
 		};
 		if (awaitConsistency === "metadata") {
 			eventSource = app.metadataCache;
@@ -141,13 +139,6 @@ export async function withProgress(
 		if (writesFullyProcessed && awaitConsistency !== "none" && !cancelRequested) {
 			textEl.textContent = `${indexingLabel}...`;
 
-			// Events fired during writes can't count toward the settle-phase
-			// quiet window — on long batches they'd be stale before the last
-			// file's event has even arrived. Reset so the quiet window is
-			// measured purely over the settle phase.
-			lastRelevantEventAt = 0;
-			anyRelevantEventSeen = false;
-
 			const settleStartedAt = Date.now();
 			while (!cancelRequested) {
 				const now = Date.now();
@@ -155,10 +146,14 @@ export async function withProgress(
 
 				if (totalElapsed >= consistencyTimeoutMs) break;
 
+				// Pin events older than settleStartedAt to settleStartedAt so
+				// the quiet window measures post-settle activity. Events fired
+				// during the write phase don't shortcut the wait, but a
+				// completely quiet settle phase still exits after quietWindowMs.
+				const quietAnchor = Math.max(lastRelevantEventAt, settleStartedAt);
 				if (
 					totalElapsed >= minimumFallbackWaitMs
-					&& anyRelevantEventSeen
-					&& now - lastRelevantEventAt >= quietWindowMs
+					&& now - quietAnchor >= quietWindowMs
 				) {
 					break;
 				}
