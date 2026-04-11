@@ -29,7 +29,7 @@ class ConfirmRemoveModal extends Modal {
 
 		const n = this.fileCount;
 		contentEl.createEl("p", {
-			text: `This will modify ${n} file${n === 1 ? "" : "s"} in your vault by removing the "${this.property}" property from them. Are you sure?`,
+			text: `This will modify ${n} note${n === 1 ? "" : "s"} in your vault by removing the "${this.property}" property from them. Are you sure?`,
 		});
 
 		new Setting(contentEl)
@@ -66,7 +66,7 @@ export function removeSelectionProperty(
 
 	if (files.length === 0) {
 		new Notice(
-			`No files have the "${selectionProperty}" property`,
+			`No notes have the "${selectionProperty}" property`,
 		);
 		return;
 	}
@@ -107,15 +107,15 @@ async function doRemove(
 	const {succeeded, failed, cancelled, total} = result;
 	if (cancelled) {
 		new Notice(
-			`Removed "${selectionProperty}" from ${succeeded} of ${total} file${total === 1 ? "" : "s"} (cancelled)`,
+			`Removed "${selectionProperty}" from ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`,
 		);
 	} else if (failed.length === 0) {
 		new Notice(
-			`Removed "${selectionProperty}" from ${succeeded} file${succeeded === 1 ? "" : "s"}`,
+			`Removed "${selectionProperty}" from ${succeeded} note${succeeded === 1 ? "" : "s"}`,
 		);
 	} else {
 		new Notice(
-			`Removed from ${succeeded} file${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
+			`Removed from ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
 		);
 	}
 }

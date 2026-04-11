@@ -63,7 +63,7 @@ export function confirmDeselectAll(
 	app: App,
 	fileCount: number,
 ): Promise<boolean> {
-	const noun = fileCount === 1 ? "file" : "files";
+	const noun = fileCount === 1 ? "note" : "notes";
 	const message = `This will deselect ${fileCount} ${noun}. Are you sure?`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve).open();
@@ -75,7 +75,7 @@ export function confirmEmptyValue(
 	property: string,
 	fileCount: number,
 ): Promise<boolean> {
-	const noun = fileCount === 1 ? "file" : "files";
+	const noun = fileCount === 1 ? "note" : "notes";
 	const message = `New value is empty. This will clear "${property}" on ${fileCount} ${noun}.`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve).open();
@@ -87,7 +87,7 @@ export function confirmReplace(
 	property: string,
 	fileCount: number,
 ): Promise<boolean> {
-	const noun = fileCount === 1 ? "file" : "files";
+	const noun = fileCount === 1 ? "note" : "notes";
 	const message = `This will replace all existing "${property}" values on ${fileCount} ${noun}. Existing values will be lost.`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve).open();
@@ -98,7 +98,7 @@ export function confirmDeleteFiles(
 	app: App,
 	fileCount: number,
 ): Promise<boolean> {
-	const noun = fileCount === 1 ? "file" : "files";
+	const noun = fileCount === 1 ? "note" : "notes";
 	const message = `This will delete ${fileCount} ${noun}. Are you sure?`;
 	return new Promise<boolean>(resolve => {
 		new ConfirmModal(app, message, resolve, {
