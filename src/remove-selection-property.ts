@@ -102,6 +102,7 @@ async function doRemove(
 				},
 			);
 		},
+		{app, awaitConsistency: "metadata"},
 	);
 
 	const {succeeded, failed, cancelled, total} = result;

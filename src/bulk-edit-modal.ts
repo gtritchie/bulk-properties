@@ -813,6 +813,7 @@ export class BulkEditModal extends Modal {
 				);
 				if (skipped) skippedCount++;
 			},
+			{app: this.app, awaitConsistency: "metadata"},
 		);
 
 		const actualSucceeded = result.succeeded - skippedCount;
@@ -856,6 +857,7 @@ export class BulkEditModal extends Modal {
 			filesToDelete,
 			"Deleting",
 			(file) => this.app.fileManager.trashFile(file),
+			{app: this.app, awaitConsistency: "vault-delete"},
 		);
 
 		const {succeeded, failed, cancelled, total} = result;

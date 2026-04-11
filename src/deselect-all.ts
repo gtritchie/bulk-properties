@@ -28,6 +28,7 @@ export async function deselectAll(
 				},
 			);
 		},
+		{app, awaitConsistency: "metadata"},
 	);
 
 	const {succeeded, failed, cancelled, total} = result;
