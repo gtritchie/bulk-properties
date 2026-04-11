@@ -3,7 +3,7 @@
 	"name": "Bulk Properties",
 	"version": "1.0.5",
 	"minAppVersion": "1.4.10",
-	"description": "Edit properties across multiple files at once, using a checkbox property to select which files to update.",
+	"description": "Edit properties across multiple notes at once. Use a checkbox property to mark notes for updating.",
 	"author": "Gary Ritchie",
 	"isDesktopOnly": false,
 	"fundingUrl": "https://github.com/sponsors/gtritchie"
