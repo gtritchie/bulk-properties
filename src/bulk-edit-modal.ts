@@ -856,6 +856,7 @@ export class BulkEditModal extends Modal {
 			filesToDelete,
 			"Deleting",
 			(file) => this.app.fileManager.trashFile(file),
+			1,
 		);
 
 		const {succeeded, failed, cancelled, total} = result;
