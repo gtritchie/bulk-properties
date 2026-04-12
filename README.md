@@ -21,7 +21,7 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 
 1. Add the selection property to your notes or Base view.
 2. Check the box on each note you want to bulk edit.
-3. Open the bulk edit dialog from the ribbon icon, the **Bulk edit selected notes** command, or the editor right-click menu.
+3. Open the bulk edit dialog from the ribbon icon (<picture><source media="(prefers-color-scheme: dark)" srcset="docs/ribbon-icon-dark.svg"><img src="docs/ribbon-icon-light.svg" width="16" height="16" alt="list-checks icon"></picture>), the **Bulk edit selected notes** command, or the editor right-click menu.
 4. Review the note checklist — uncheck any notes you don't want to modify, or re-check notes you do.
 5. Choose a property from the dropdown, enter the new value, and select **Update properties**. For multi-value properties (Aliases, List, Tags), choose an action: **Merge** adds new values to existing ones, **Replace** overwrites the current values, and **Delete** removes matching values.
 6. To delete the checked notes instead, select **Delete selected notes**. After a confirmation prompt, the notes are deleted following your **Settings → Files and links → Deleted files** preference — they may be moved to the system trash, moved to an Obsidian `.trash` folder, or permanently deleted, depending on how that preference is configured.
