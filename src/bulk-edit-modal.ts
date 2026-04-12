@@ -235,7 +235,7 @@ export class BulkEditModal extends Modal {
 					});
 				});
 
-			this.valueContainerEl = contentEl.createDiv();
+			this.valueContainerEl = contentEl.createDiv({cls: "bulk-properties-value-container"});
 			this.renderValueInput();
 
 			new Setting(contentEl)
