@@ -5,6 +5,12 @@ import { globalIgnores } from "eslint/config";
 
 export default tseslint.config(
 	{
+		// Report directive comments that silence rules which never fired.
+		// Obsidian's plugin reviewer enables this; without it, stale
+		// eslint-disable comments slip through local lint.
+		linterOptions: {
+			reportUnusedDisableDirectives: "error",
+		},
 		languageOptions: {
 			globals: {
 				...globals.browser,
@@ -22,6 +28,17 @@ export default tseslint.config(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		// The obsidianmd preset disables require-await, but Obsidian's
+		// reviewer enforces it. Re-enable so local lint matches.
+		files: ['**/*.ts', '**/*.tsx'],
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
+		rules: {
+			"@typescript-eslint/require-await": "error",
+		},
+	},
 	globalIgnores([
 		"node_modules",
 		"dist",

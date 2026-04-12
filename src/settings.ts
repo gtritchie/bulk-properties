@@ -67,6 +67,16 @@ const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 	text: "Text",
 };
 
+// metadataTypeManager is an undocumented internal API — not in
+// obsidian.d.ts. Declared here as an optional property of App so all
+// access is type-safe without reaching for `any`. All access is also
+// runtime-guarded below.
+type AppWithMetadataTypeManager = App & {
+	metadataTypeManager?: {
+		getPropertyInfo?: (name: string) => { widget?: string } | undefined;
+	};
+};
+
 // Uses Obsidian's undocumented metadataTypeManager to look up the type
 // assigned to a property in Settings → Properties. Returns null if the
 // API is unavailable, the property is unknown, or the widget value
@@ -79,13 +89,7 @@ function detectPropertyType(app: App, name: string): PropertyType | null {
 		const known = new Set(getAllPropertyNames(app));
 		if (!known.has(name)) return null;
 
-		// metadataTypeManager is an undocumented internal API — not in
-		// obsidian.d.ts. All access is runtime-guarded; the any cast and
-		// unsafe member accesses are intentional.
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-		const mtm = (app as any).metadataTypeManager as
-			| { getPropertyInfo?: (name: string) => { widget?: string } | undefined }
-			| undefined;
+		const mtm = (app as AppWithMetadataTypeManager).metadataTypeManager;
 		if (!mtm || typeof mtm.getPropertyInfo !== "function") return null;
 		const info = mtm.getPropertyInfo(name);
 		if (!info || typeof info.widget !== "string") return null;

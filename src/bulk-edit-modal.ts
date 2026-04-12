@@ -9,6 +9,17 @@ import {
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
+// `app.setting` is an undocumented internal API used by core plugins to
+// open the settings pane. Declared here as an optional property so it
+// can be accessed type-safely without reaching for `any`; all usages
+// are runtime-guarded.
+type AppWithSetting = App & {
+	setting?: {
+		open?: () => void;
+		openTabById?: (id: string) => void;
+	};
+};
+
 /**
  * Validates a tag name against Obsidian's naming rules.
  * Returns null if valid, or a reason string if invalid.
@@ -167,7 +178,7 @@ export class BulkEditModal extends Modal {
 			this.fileCheckboxes.set(file, checkbox);
 			row.createEl("span", {text: file.path, cls: "bulk-properties-file-path"});
 			checkbox.addEventListener("change", () => {
-				void this.toggleSelection(file, checkbox);
+				this.toggleSelection(file, checkbox);
 			});
 		}
 
@@ -190,22 +201,18 @@ export class BulkEditModal extends Modal {
 
 		if (!hasEditableProperties) {
 			const p = contentEl.createEl("p");
-			p.appendText("No properties configured. Add properties in the ");
-			// eslint-disable-next-line obsidianmd/ui/sentence-case -- mid-sentence text
-			const link = p.createEl("a", {text: "plugin settings", href: "#"});
+			p.appendText("No properties configured. ");
+			const link = p.createEl("a", {text: "Open settings to configure properties", href: "#"});
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
 				this.close();
-				/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- undocumented Obsidian API */
-				const setting = (this.app as any).setting;
+				const {setting} = this.app as AppWithSetting;
 				if (typeof setting?.open === "function" && typeof setting?.openTabById === "function") {
 					setting.open();
 					setting.openTabById(this.plugin.manifest.id);
 				} else {
-					// eslint-disable-next-line obsidianmd/ui/sentence-case -- navigation path
-					new Notice("Open Settings → Community plugins → Bulk Properties to configure properties.");
+					new Notice("Open the settings pane to configure properties.");
 				}
-				/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 			});
 			p.appendText(".");
 		}
@@ -301,7 +308,7 @@ export class BulkEditModal extends Modal {
 		this.fileSelection.set(file, selected);
 	}
 
-	private async toggleSelection(file: TFile, checkbox: HTMLInputElement) {
+	private toggleSelection(file: TFile, checkbox: HTMLInputElement): void {
 		const desired = checkbox.checked;
 		checkbox.disabled = true;
 
