@@ -78,7 +78,7 @@ export function removeSelectionProperty(
 	}
 
 	new ConfirmRemoveModal(app, selectionProperty, files.length, () => {
-		void doRemove(plugin, files).catch(
+		void doRemove(plugin, selectionProperty, files).catch(
 			(err: unknown) => {
 				console.error(
 					"bulk-properties: unexpected error during property removal:",
@@ -94,10 +94,10 @@ export function removeSelectionProperty(
 
 async function doRemove(
 	plugin: BulkPropertiesPlugin,
+	selectionProperty: string,
 	files: ReturnType<typeof getFilesWithProperty>,
 ): Promise<void> {
 	const {app} = plugin;
-	const selectionProperty = plugin.settings.selectionProperty;
 	const result = await withProgress(
 		files,
 		`Removing "${selectionProperty}"`,
