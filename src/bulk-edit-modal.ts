@@ -2,6 +2,10 @@ import {AbstractInputSuggest, App, Modal, Notice, setIcon, Setting, TFile} from 
 import type BulkPropertiesPlugin from "./main";
 import {getPropertyValues, getSelectedFiles} from "./files";
 import {confirmDeleteFiles, confirmEmptyValue, confirmReplace} from "./confirm-modal";
+import {
+	shouldWarnLargeOperation,
+	showLargeOperationNotice,
+} from "./large-operation-notice";
 import {withProgress} from "./progress";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
@@ -827,7 +831,11 @@ export class BulkEditModal extends Modal {
 		if (failed.length > 0) {
 			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
 		}
-		new Notice(msg);
+		if (shouldWarnLargeOperation(this.plugin, actualSucceeded)) {
+			showLargeOperationNotice(this.plugin, actualSucceeded, msg);
+		} else {
+			new Notice(msg);
+		}
 	}
 
 	private async doDelete() {

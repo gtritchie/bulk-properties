@@ -1,5 +1,10 @@
 import {App, Modal, Notice, Setting} from "obsidian";
+import type BulkPropertiesPlugin from "./main";
 import {getFilesWithProperty} from "./files";
+import {
+	shouldWarnLargeOperation,
+	showLargeOperationNotice,
+} from "./large-operation-notice";
 import {withProgress} from "./progress";
 
 class ConfirmRemoveModal extends Modal {
@@ -59,9 +64,10 @@ class ConfirmRemoveModal extends Modal {
  * a cancelable progress notice.
  */
 export function removeSelectionProperty(
-	app: App,
-	selectionProperty: string,
+	plugin: BulkPropertiesPlugin,
 ): void {
+	const {app} = plugin;
+	const selectionProperty = plugin.settings.selectionProperty;
 	const files = getFilesWithProperty(app, selectionProperty);
 
 	if (files.length === 0) {
@@ -72,7 +78,7 @@ export function removeSelectionProperty(
 	}
 
 	new ConfirmRemoveModal(app, selectionProperty, files.length, () => {
-		void doRemove(app, selectionProperty, files).catch(
+		void doRemove(plugin, selectionProperty, files).catch(
 			(err: unknown) => {
 				console.error(
 					"bulk-properties: unexpected error during property removal:",
@@ -87,10 +93,11 @@ export function removeSelectionProperty(
 }
 
 async function doRemove(
-	app: App,
+	plugin: BulkPropertiesPlugin,
 	selectionProperty: string,
 	files: ReturnType<typeof getFilesWithProperty>,
 ): Promise<void> {
+	const {app} = plugin;
 	const result = await withProgress(
 		files,
 		`Removing "${selectionProperty}"`,
@@ -105,17 +112,18 @@ async function doRemove(
 	);
 
 	const {succeeded, failed, cancelled, total} = result;
+	let msg: string;
 	if (cancelled) {
-		new Notice(
-			`Removed "${selectionProperty}" from ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`,
-		);
+		msg = `Removed "${selectionProperty}" from ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`;
 	} else if (failed.length === 0) {
-		new Notice(
-			`Removed "${selectionProperty}" from ${succeeded} note${succeeded === 1 ? "" : "s"}`,
-		);
+		msg = `Removed "${selectionProperty}" from ${succeeded} note${succeeded === 1 ? "" : "s"}`;
 	} else {
-		new Notice(
-			`Removed from ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
-		);
+		msg = `Removed from ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`;
+	}
+
+	if (shouldWarnLargeOperation(plugin, succeeded)) {
+		showLargeOperationNotice(plugin, succeeded, msg);
+	} else {
+		new Notice(msg);
 	}
 }

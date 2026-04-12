@@ -6,6 +6,8 @@ This plugin uses a checkbox property (default: `selected`) to track which notes 
 
 **Note:** The plugin operates on all notes in the vault that have the selection property checked, not just notes visible in a particular Base. Make sure to uncheck the selection property on notes you don't want to modify.
 
+**Scale:** This plugin is intended for use on relatively small sets of notes at a time. When an operation modifies many notes, Obsidian's metadata cache may take several minutes to re-index the changed frontmatter, during which Bases and other property-driven views can show stale information. The plugin displays a warning when this happens; you can suppress it via **Settings → Bulk Properties → Warn after large operations**.
+
 ## Setup
 
 Before using the command, configure the plugin in **Settings → Bulk Properties**:

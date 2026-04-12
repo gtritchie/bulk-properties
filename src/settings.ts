@@ -107,6 +107,7 @@ export interface BulkPropertiesSettings {
 	properties: PropertyConfig[];
 	lastSelectedProperty: string;
 	showStatusBarCount: boolean;
+	showLargeOperationWarning: boolean;
 }
 
 export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
@@ -115,6 +116,7 @@ export const DEFAULT_SETTINGS: BulkPropertiesSettings = {
 	properties: [],
 	lastSelectedProperty: "",
 	showStatusBarCount: true,
+	showLargeOperationWarning: true,
 };
 
 export class BulkPropertiesSettingTab extends PluginSettingTab {
@@ -263,6 +265,19 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						if (await this.updateSetting("showStatusBarCount", value)) {
 							this.plugin.updateStatusBar();
 						}
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("Warn after large operations")
+			.setDesc("Re-enable the metadata cache warning after dismissing it. Shown after operations that modify many notes.")
+			.addToggle(toggle => {
+				makeToggleAccessible(toggle, "Warn after large operations", this.plugin.settings.showLargeOperationWarning);
+				toggle
+					.setValue(this.plugin.settings.showLargeOperationWarning)
+					.onChange(async (value) => {
+						updateToggleAriaChecked(toggle, value);
+						await this.updateSetting("showLargeOperationWarning", value);
 					});
 			});
 
