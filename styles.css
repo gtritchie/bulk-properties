@@ -43,6 +43,10 @@
 	margin-left: var(--size-4-2);
 }
 
+.bulk-properties-value-container {
+	padding-bottom: var(--size-4-3);
+}
+
 .bulk-properties-pill-container {
 	display: flex;
 	flex-wrap: wrap;
