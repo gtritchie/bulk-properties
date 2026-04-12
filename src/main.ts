@@ -33,7 +33,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 			id: "deselect-all",
 			name: "Deselect all notes",
 			callback: () => {
-				void deselectAll(this.app, this.settings.selectionProperty);
+				void deselectAll(this);
 			},
 		});
 
@@ -41,10 +41,7 @@ export default class BulkPropertiesPlugin extends Plugin {
 			id: "remove-selection-property",
 			name: "Remove selection property from all notes",
 			callback: () => {
-				removeSelectionProperty(
-					this.app,
-					this.settings.selectionProperty,
-				);
+				removeSelectionProperty(this);
 			},
 		});
 
@@ -145,6 +142,11 @@ export default class BulkPropertiesPlugin extends Plugin {
 		if (typeof this.settings.selectionProperty !== "string"
 			|| this.settings.selectionProperty.trim() === "") {
 			this.settings.selectionProperty = DEFAULT_SETTINGS.selectionProperty;
+		}
+
+		if (typeof this.settings.showLargeOperationWarning !== "boolean") {
+			this.settings.showLargeOperationWarning =
+				DEFAULT_SETTINGS.showLargeOperationWarning;
 		}
 
 		if (!Array.isArray(this.settings.properties)) {

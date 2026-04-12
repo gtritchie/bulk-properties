@@ -1,12 +1,18 @@
-import {App, Notice} from "obsidian";
+import {Notice} from "obsidian";
+import type BulkPropertiesPlugin from "./main";
 import {confirmDeselectAll} from "./confirm-modal";
 import {getSelectedFiles} from "./files";
+import {
+	shouldWarnLargeOperation,
+	showLargeOperationNotice,
+} from "./large-operation-notice";
 import {withProgress} from "./progress";
 
 export async function deselectAll(
-	app: App,
-	selectionProperty: string,
+	plugin: BulkPropertiesPlugin,
 ): Promise<void> {
+	const {app} = plugin;
+	const selectionProperty = plugin.settings.selectionProperty;
 	const files = getSelectedFiles(app, selectionProperty);
 
 	if (files.length === 0) {
@@ -31,17 +37,18 @@ export async function deselectAll(
 	);
 
 	const {succeeded, failed, cancelled, total} = result;
+	let msg: string;
 	if (cancelled) {
-		new Notice(
-			`Deselected ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`,
-		);
+		msg = `Deselected ${succeeded} of ${total} note${total === 1 ? "" : "s"} (cancelled)`;
 	} else if (failed.length === 0) {
-		new Notice(
-			`Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}`,
-		);
+		msg = `Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}`;
 	} else {
-		new Notice(
-			`Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`,
-		);
+		msg = `Deselected ${succeeded} note${succeeded === 1 ? "" : "s"}, failed on ${failed.length}: ${failed.join(", ")}`;
+	}
+
+	if (shouldWarnLargeOperation(plugin, succeeded)) {
+		showLargeOperationNotice(plugin, succeeded, msg);
+	} else {
+		new Notice(msg);
 	}
 }
