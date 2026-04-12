@@ -875,10 +875,6 @@ export class BulkEditModal extends Modal {
 		if (failed.length > 0) {
 			msg += `, failed on ${failed.length}: ${failed.join(", ")}`;
 		}
-		if (shouldWarnLargeOperation(this.plugin, succeeded)) {
-			showLargeOperationNotice(this.plugin, succeeded, msg);
-		} else {
-			new Notice(msg);
-		}
+		new Notice(msg);
 	}
 }

@@ -2,7 +2,7 @@ import {Modal, Notice, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
 import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
-export const LARGE_OPERATION_THRESHOLD = 75;
+export const LARGE_OPERATION_THRESHOLD = 25;
 
 export function shouldWarnLargeOperation(
 	plugin: BulkPropertiesPlugin,
