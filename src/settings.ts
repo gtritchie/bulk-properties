@@ -213,7 +213,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					.setPlaceholder("Selected")
 					.setValue(this.plugin.settings.selectionProperty);
 				search.inputEl.addEventListener("blur", () => {
-					pendingBlur = window.setTimeout(
+					pendingBlur = activeWindow.setTimeout(
 						() => void commitSelectionProperty(), 0,
 					);
 				});
@@ -221,7 +221,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				suggest.exclude = () =>
 					new Set(this.plugin.settings.properties.map(p => p.name));
 				suggest.onSuggestionSelected = () => {
-					window.clearTimeout(pendingBlur);
+					activeWindow.clearTimeout(pendingBlur);
 					void commitSelectionProperty();
 				};
 			});

@@ -9,7 +9,7 @@ import {isFileSelected, setSelection} from "./toggle-selection";
 export default class BulkPropertiesPlugin extends Plugin {
 	settings!: BulkPropertiesSettings;
 	private statusBarEl: HTMLElement | null = null;
-	private statusBarTimer: ReturnType<typeof setTimeout> | null = null;
+	private statusBarTimer: number | null = null;
 	private saveQueue: Promise<void> = Promise.resolve();
 
 	override async onload() {
@@ -99,16 +99,16 @@ export default class BulkPropertiesPlugin extends Plugin {
 
 	override onunload() {
 		if (this.statusBarTimer !== null) {
-			clearTimeout(this.statusBarTimer);
+			activeWindow.clearTimeout(this.statusBarTimer);
 			this.statusBarTimer = null;
 		}
 	}
 
 	private debouncedUpdateStatusBar(): void {
 		if (this.statusBarTimer !== null) {
-			clearTimeout(this.statusBarTimer);
+			activeWindow.clearTimeout(this.statusBarTimer);
 		}
-		this.statusBarTimer = setTimeout(() => {
+		this.statusBarTimer = activeWindow.setTimeout(() => {
 			this.statusBarTimer = null;
 			this.updateStatusBar();
 		}, 500);

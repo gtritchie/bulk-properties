@@ -1,9 +1,8 @@
 import tseslint from 'typescript-eslint';
 import obsidianmd from "eslint-plugin-obsidianmd";
-import globals from "globals";
-import { globalIgnores } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 
-export default tseslint.config(
+export default defineConfig(
 	{
 		// Report directive comments that silence rules which never fired.
 		// Obsidian's plugin reviewer enables this; without it, stale
@@ -12,9 +11,6 @@ export default tseslint.config(
 			reportUnusedDisableDirectives: "error",
 		},
 		languageOptions: {
-			globals: {
-				...globals.browser,
-			},
 			parserOptions: {
 				projectService: {
 					allowDefaultProject: [
@@ -36,6 +32,21 @@ export default tseslint.config(
 		},
 		rules: {
 			"@typescript-eslint/require-await": "error",
+		},
+	},
+	{
+		// The obsidianmd 0.2.x preset spreads its TS-typed rules globally,
+		// so they also apply to the package.json block that uses json/json
+		// (no parser services → crash). Match the preset's scope and
+		// disable the type-aware rules here; the preset's JSON-aware
+		// rules (validate-license, depend/ban-dependencies) still run.
+		files: ['package.json'],
+		rules: {
+			'obsidianmd/no-plugin-as-component': 'off',
+			'obsidianmd/no-view-references-in-plugin': 'off',
+			'obsidianmd/prefer-file-manager-trash-file': 'off',
+			'obsidianmd/prefer-instanceof': 'off',
+			'obsidianmd/no-unsupported-api': 'off',
 		},
 	},
 	globalIgnores([
