@@ -43,6 +43,14 @@
 	margin-left: var(--size-4-2);
 }
 
+.bulk-properties-selection-row .setting-item-info {
+	display: none;
+}
+
+.bulk-properties-delete-btn {
+	margin-right: auto;
+}
+
 .bulk-properties-value-container {
 	padding-bottom: var(--size-4-3);
 }

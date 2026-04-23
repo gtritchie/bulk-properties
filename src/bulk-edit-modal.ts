@@ -182,7 +182,14 @@ export class BulkEditModal extends Modal {
 			});
 		}
 
-		new Setting(contentEl)
+		const selectionRow = new Setting(contentEl)
+			.addButton(btn => {
+				btn.setButtonText("Delete selected").onClick(() => {
+					void this.doDelete();
+				});
+				this.deleteBtn = btn.buttonEl;
+				this.deleteBtn.addClass("bulk-properties-delete-btn");
+			})
 			.addButton(btn => {
 				btn.setButtonText("Select all").onClick(() => {
 					void this.bulkSetSelection(true);
@@ -195,6 +202,7 @@ export class BulkEditModal extends Modal {
 				});
 				this.deselectAllBtn = btn.buttonEl;
 			});
+		selectionRow.settingEl.addClass("bulk-properties-selection-row");
 
 		const editableProperties = settings.properties.filter(p => p.name !== settings.selectionProperty);
 		const hasEditableProperties = editableProperties.length > 0;
@@ -249,20 +257,8 @@ export class BulkEditModal extends Modal {
 							updateToggleAriaChecked(toggle, value);
 						});
 				});
-		}
 
-		const footer = new Setting(contentEl)
-			.addButton(btn => {
-				btn
-					.setButtonText("Delete selected notes")
-					.setWarning()
-					.onClick(() => {
-						void this.doDelete();
-					});
-				this.deleteBtn = btn.buttonEl;
-			});
-		if (hasEditableProperties) {
-			footer.addButton(btn => {
+			new Setting(contentEl).addButton(btn => {
 				btn
 					.setButtonText("Update properties")
 					.setCta()
