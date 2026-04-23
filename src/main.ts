@@ -98,17 +98,19 @@ export default class BulkPropertiesPlugin extends Plugin {
 	}
 
 	override onunload() {
-		if (this.statusBarTimer !== null) {
-			activeWindow.clearTimeout(this.statusBarTimer);
+		if (this.statusBarTimer !== null && this.statusBarEl) {
+			this.statusBarEl.win.clearTimeout(this.statusBarTimer);
 			this.statusBarTimer = null;
 		}
 	}
 
 	private debouncedUpdateStatusBar(): void {
+		if (!this.statusBarEl) return;
+		const win = this.statusBarEl.win;
 		if (this.statusBarTimer !== null) {
-			activeWindow.clearTimeout(this.statusBarTimer);
+			win.clearTimeout(this.statusBarTimer);
 		}
-		this.statusBarTimer = activeWindow.setTimeout(() => {
+		this.statusBarTimer = win.setTimeout(() => {
 			this.statusBarTimer = null;
 			this.updateStatusBar();
 		}, 500);
