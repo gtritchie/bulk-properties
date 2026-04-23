@@ -208,12 +208,13 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 				// Defer blur so a suggestion click can cancel it
 				let pendingBlur = 0;
+				const win = search.inputEl.win;
 
 				search
 					.setPlaceholder("Selected")
 					.setValue(this.plugin.settings.selectionProperty);
 				search.inputEl.addEventListener("blur", () => {
-					pendingBlur = window.setTimeout(
+					pendingBlur = win.setTimeout(
 						() => void commitSelectionProperty(), 0,
 					);
 				});
@@ -221,7 +222,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				suggest.exclude = () =>
 					new Set(this.plugin.settings.properties.map(p => p.name));
 				suggest.onSuggestionSelected = () => {
-					window.clearTimeout(pendingBlur);
+					win.clearTimeout(pendingBlur);
 					void commitSelectionProperty();
 				};
 			});

@@ -328,7 +328,8 @@ export class BulkEditModal extends Modal {
 			this.updateCountText();
 			if (!this.uiLocked) {
 				checkbox.disabled = false;
-				if (document.activeElement === document.body) {
+				const doc = checkbox.ownerDocument;
+				if (doc.activeElement === doc.body) {
 					checkbox.focus();
 				}
 			}
@@ -441,7 +442,7 @@ export class BulkEditModal extends Modal {
 				break;
 
 			case "number": {
-				const numInput = document.createElement("input");
+				const numInput = setting.controlEl.ownerDocument.createElement("input");
 				numInput.type = "number";
 				numInput.className = "bulk-properties-number-input";
 				numInput.addEventListener("input", () => {
@@ -452,7 +453,7 @@ export class BulkEditModal extends Modal {
 			}
 
 			case "date": {
-				const dateInput = document.createElement("input");
+				const dateInput = setting.controlEl.ownerDocument.createElement("input");
 				dateInput.type = "date";
 				dateInput.className = "bulk-properties-date-input";
 				dateInput.addEventListener("input", () => {
@@ -463,7 +464,7 @@ export class BulkEditModal extends Modal {
 			}
 
 			case "datetime": {
-				const dtInput = document.createElement("input");
+				const dtInput = setting.controlEl.ownerDocument.createElement("input");
 				dtInput.type = "datetime-local";
 				dtInput.className = "bulk-properties-date-input";
 				dtInput.addEventListener("input", () => {
