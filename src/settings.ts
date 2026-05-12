@@ -231,7 +231,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			p => p.name === this.plugin.settings.selectionProperty,
 		)) {
 			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-			selectionSetting.descEl.createEl("span", {
+			selectionSetting.descEl.createSpan({
 				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
 				cls: "mod-warning",
 			});
