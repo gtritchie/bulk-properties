@@ -174,7 +174,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					const type = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
 					if (type !== null && type !== "checkbox") {
 						selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-						selectionSetting.descEl.createEl("span", {
+						selectionSetting.descEl.createSpan({
 							text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[type]} type`,
 							cls: "mod-warning",
 						});
