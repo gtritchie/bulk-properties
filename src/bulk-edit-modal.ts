@@ -657,7 +657,7 @@ export class BulkEditModal extends Modal {
 						}
 					};
 					if (suggest) {
-						requestAnimationFrame(commitPending);
+						window.requestAnimationFrame(commitPending);
 					} else {
 						commitPending();
 					}
