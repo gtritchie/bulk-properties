@@ -176,7 +176,7 @@ export class BulkEditModal extends Modal {
 			checkbox.type = "checkbox";
 			checkbox.checked = checked;
 			this.fileCheckboxes.set(file, checkbox);
-			row.createEl("span", {text: file.path, cls: "bulk-properties-file-path"});
+			row.createSpan({text: file.path, cls: "bulk-properties-file-path"});
 			checkbox.addEventListener("change", () => {
 				this.toggleSelection(file, checkbox);
 			});
@@ -657,7 +657,7 @@ export class BulkEditModal extends Modal {
 						}
 					};
 					if (suggest) {
-						requestAnimationFrame(commitPending);
+						window.requestAnimationFrame(commitPending);
 					} else {
 						commitPending();
 					}
