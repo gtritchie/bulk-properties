@@ -40,9 +40,6 @@ Before using the command, configure the plugin in **Settings → Bulk Properties
 
 ## Manual Installation
 
-> [!NOTE]
-> These instructions are for installing and testing the plugin before it is available in the Obsidian Community Plugins list.
-
-Recommended approach is to use the BRAT plugin (available as a Community Plugin) and point it at this repository.
+For normal use, install from the Obsidian Community Plugins catalog.
 
 For a fully-manual installation, copy `main.js`, `styles.css`, and `manifest.json` to your vault at `.obsidian/plugins/bulk-properties/`.
