@@ -111,7 +111,7 @@ class MyTab extends PluginSettingTab {
                     key: 'cacheKey',
                     placeholder: 'default',
                     validate: (value: string) =>
-                        /^[a-z0-9]*$/i.test(value.trim()) ? undefined : 'Use letters and digits only.',
+                        /^[a-z0-9]*$/i.test(value) ? undefined : 'Use letters and digits only.',
                 },
             },
         ];
@@ -124,6 +124,7 @@ class MyTab extends PluginSettingTab {
 - `display()` is gone. The framework renders from the array.
 - All three settings collapse to `control` definitions. The framework reads `this.plugin.settings[key]`, writes changes back, and calls `saveData()` for you.
 - The `cacheKey` rejection-on-invalid logic moved from a custom `onChange` into a `validate` callback. The framework now shows an inline error message when the input doesn't match.
+  - **One behavioral difference:** the original `onChange` trimmed the value before saving (`value.trim()`), so surrounding whitespace was silently normalized away. `validate` can only accept or reject — it can't transform the value the framework persists. So we validate the **raw** value (no `.trim()`): `" abc "` now fails validation with the error message instead of being saved with spaces. If you must normalize rather than reject (trim, lowercase, etc.), keep a `render` callback — see "When to keep `render`" below.
 - Imports drop `Setting` (no longer needed).
 
 Update your manifest:
@@ -182,7 +183,7 @@ class MyTab extends PluginSettingTab {
                     key: 'cacheKey',
                     placeholder: 'default',
                     validate: (value: string) =>
-                        /^[a-z0-9]*$/i.test(value.trim()) ? undefined : 'Use letters and digits only.',
+                        /^[a-z0-9]*$/i.test(value) ? undefined : 'Use letters and digits only.',
                 },
             },
         ];
@@ -219,6 +220,7 @@ class MyTab extends PluginSettingTab {
 
 In Path A above, the `cacheKey` validation moved from a hand-rolled `onChange` into `validate`. That works whenever the rejection is purely about the value's shape (regex, range, format). But there are cases where `control` + `validate` isn't enough and `render` is the right tool:
 
+- **Normalization** before saving (trim, lowercase, collapse whitespace). `validate` can only accept or reject the value as typed; it can't rewrite what gets persisted. If you want `" abc "` saved as `"abc"` rather than rejected, normalize in a `render` `onChange`.
 - **Side effects** on change (call a method, update a status bar, refresh another view).
 - **Inverted or derived values** (toggle drives a string config, slider drives a complex calculation).
 - **Custom suggesters** beyond `file`/`folder` (e.g. a command picker, tag picker).

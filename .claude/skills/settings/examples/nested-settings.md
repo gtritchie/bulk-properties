@@ -75,7 +75,18 @@ export default class MyPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        // Merge each nested object explicitly. A shallow
+        // Object.assign({}, DEFAULT_SETTINGS, data) would let a stored partial
+        // object (e.g. { editor: { fontSize: 20 } }) replace the whole default
+        // editor object, dropping tabSize — and a null nested object would make
+        // predicates like settings.sync.enabled throw. Spreading null/undefined
+        // is a no-op, so missing or partial sections fall back to defaults.
+        let data: Partial<MySettings> = (await this.loadData()) ?? {};
+        this.settings = {
+            editor: { ...DEFAULT_SETTINGS.editor, ...data.editor },
+            sync: { ...DEFAULT_SETTINGS.sync, ...data.sync },
+            appearance: { ...DEFAULT_SETTINGS.appearance, ...data.appearance },
+        };
     }
 
     async saveSettings() {
@@ -159,7 +170,7 @@ Notes on the example:
 ## What you give up
 
 - **Compile-time `key` checking.** Dot-notation strings aren't statically verifiable against a nested type — `key: 'editor.fontSiz'` (typo) compiles. If you need it, generate a literal-union type for your dot-paths and pass it as the `K` parameter to `SettingDefinitionItem<K>` / `SettingControl<K>`.
-- **One source of truth for defaults.** The framework's per-control `defaultValue` only fires when `getControlValue` returns `undefined` — fine for missing leaf keys, but you have to seed the *shape* of the nested objects yourself (via `Object.assign` in `loadSettings`, as above) or `setPath` won't have anywhere to write.
+- **One source of truth for defaults.** The framework's per-control `defaultValue` only fires when `getControlValue` returns `undefined` — fine for missing leaf keys, but you have to seed the *shape* of the nested objects yourself (via the per-object merge in `loadSettings`, as above) or `setPath` won't have anywhere to write. A shallow `Object.assign` is **not** enough here: it merges only top-level keys, so a stored partial section overwrites its defaults wholesale and a `null` section breaks predicates that read through it.
 
 ## When this isn't enough
 
