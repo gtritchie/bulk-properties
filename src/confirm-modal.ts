@@ -32,6 +32,7 @@ class ConfirmModal extends Modal {
 			.addButton(btn => {
 				btn.setButtonText(this.confirmText);
 				if (this.confirmStyle === "warning") {
+					// eslint-disable-next-line @typescript-eslint/no-deprecated -- setDestructive() requires Obsidian 1.13.0; setWarning keeps minAppVersion at 1.8.7
 					btn.setWarning();
 				} else {
 					btn.setCta();

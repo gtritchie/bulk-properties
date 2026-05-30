@@ -7,7 +7,7 @@ import {removeSelectionProperty} from "./remove-selection-property";
 import {isFileSelected, setSelection} from "./toggle-selection";
 
 export default class BulkPropertiesPlugin extends Plugin {
-	settings!: BulkPropertiesSettings;
+	declare settings: BulkPropertiesSettings;
 	private statusBarEl: HTMLElement | null = null;
 	private statusBarTimer: number | null = null;
 	private saveQueue: Promise<void> = Promise.resolve();
