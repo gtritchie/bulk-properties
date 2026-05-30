@@ -92,8 +92,10 @@ class StatusPage extends SettingPage {
 
     display() {
         this.containerEl.empty();
-        this.containerEl.createEl('p', { text: `Last sync: ${new Date().toLocaleTimeString()}` });
-        this.timer = window.setInterval(() => this.display(), 1000);
+        let lastSyncEl = this.containerEl.createEl('p');
+        let render = () => lastSyncEl.setText(`Last sync: ${new Date().toLocaleTimeString()}`);
+        render();
+        this.timer = window.setInterval(render, 1000);
     }
 
     hide() {
@@ -101,6 +103,8 @@ class StatusPage extends SettingPage {
     }
 }
 ```
+
+Note that the interval callback updates the element it captured — it does **not** call `this.display()`. Re-running `display()` on every tick would call `setInterval` again each second, leaking a new timer per tick while `this.timer` tracks only the most recent one (so `hide()` clears just one of many). Create the timer once; update the DOM from the callback.
 
 `hide()` is **not guaranteed** to run when the host window is destroyed without a graceful close (e.g. renderer crash). For state that *must* be released, register it on the plugin instead — plugin unload always runs on graceful shutdown.
 
