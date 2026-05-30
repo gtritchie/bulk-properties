@@ -88,10 +88,11 @@ Override `hide()` to release anything that outlives the DOM — timers, observer
 
 ```ts
 class StatusPage extends SettingPage {
-    private timer: number;
+    private timer?: number;
 
     display() {
         this.containerEl.empty();
+        window.clearInterval(this.timer);
         let lastSyncEl = this.containerEl.createEl('p');
         let render = () => lastSyncEl.setText(`Last sync: ${new Date().toLocaleTimeString()}`);
         render();
@@ -104,7 +105,7 @@ class StatusPage extends SettingPage {
 }
 ```
 
-Note that the interval callback updates the element it captured — it does **not** call `this.display()`. Re-running `display()` on every tick would call `setInterval` again each second, leaking a new timer per tick while `this.timer` tracks only the most recent one (so `hide()` clears just one of many). Create the timer once; update the DOM from the callback.
+`display()` clears the previous timer before starting a new one, so calling it again to redraw — after a button click, an external refresh, or a framework re-render — replaces the interval instead of orphaning it. Without that clear, each redraw would overwrite `this.timer` while the previous interval kept firing against a now-detached element, and `hide()` would clear only the most recent one. (`window.clearInterval` ignores an `undefined` id, so the first draw is safe too.) The interval callback itself updates the element it captured rather than calling `this.display()` — redrawing every tick would spin up a fresh timer each second. Keep one interval alive at a time; update the DOM from the callback.
 
 `hide()` is **not guaranteed** to run when the host window is destroyed without a graceful close (e.g. renderer crash). For state that *must* be released, register it on the plugin instead — plugin unload always runs on graceful shutdown.
 
