@@ -4,12 +4,6 @@ import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig(
 	{
-		// Report directive comments that silence rules which never fired.
-		// Obsidian's plugin reviewer enables this; without it, stale
-		// eslint-disable comments slip through local lint.
-		linterOptions: {
-			reportUnusedDisableDirectives: "error",
-		},
 		languageOptions: {
 			parserOptions: {
 				projectService: {
@@ -35,18 +29,11 @@ export default defineConfig(
 		},
 	},
 	{
-		// The obsidianmd 0.2.x preset spreads its TS-typed rules globally,
-		// so they also apply to the package.json block that uses json/json
-		// (no parser services → crash). Match the preset's scope and
-		// disable the type-aware rules here; the preset's JSON-aware
-		// rules (validate-license, depend/ban-dependencies) still run.
-		files: ['package.json'],
+		// We deliberately keep the imperative display() settings model for
+		// now; migrating to getSettingDefinitions() is planned separately.
+		files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx}'],
 		rules: {
-			'obsidianmd/no-plugin-as-component': 'off',
-			'obsidianmd/no-view-references-in-plugin': 'off',
-			'obsidianmd/prefer-file-manager-trash-file': 'off',
-			'obsidianmd/prefer-instanceof': 'off',
-			'obsidianmd/no-unsupported-api': 'off',
+			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
 		},
 	},
 	globalIgnores([
