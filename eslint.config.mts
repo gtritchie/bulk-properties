@@ -35,28 +35,10 @@ export default defineConfig(
 		},
 	},
 	{
-		// The obsidianmd preset forbids disabling no-deprecated, but our
-		// three suppressions are deliberate: the replacements
-		// (setDestructive, getSettingDefinitions) require Obsidian 1.13.0
-		// and we hold minAppVersion at 1.8.7. Keep the preset's list
-		// otherwise intact.
+		// We deliberately keep the imperative display() settings model for
+		// now; migrating to getSettingDefinitions() is planned separately.
 		files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx}'],
 		rules: {
-			"eslint-comments/no-restricted-disable": [
-				"error",
-				"obsidianmd/*",
-				"no-console",
-				"no-restricted-globals",
-				"@typescript-eslint/no-restricted-imports",
-				"no-alert",
-				"@typescript-eslint/no-explicit-any",
-				"@microsoft/sdl/no-document-write",
-				"no-eval",
-				"@microsoft/sdl/no-inner-html",
-				"obsidianmd/no-nodejs-modules",
-			],
-			// We deliberately keep the imperative display() settings model
-			// rather than migrating to getSettingDefinitions() (1.13.0+).
 			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
 		},
 	},

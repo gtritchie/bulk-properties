@@ -43,8 +43,7 @@ class ConfirmRemoveModal extends Modal {
 				.onClick(() => this.close()))
 			.addButton(btn => btn
 				.setButtonText("Remove")
-				// eslint-disable-next-line @typescript-eslint/no-deprecated -- setDestructive() requires Obsidian 1.13.0; setWarning keeps minAppVersion at 1.8.7
-				.setWarning()
+				.setDestructive()
 				.onClick(() => {
 					this.confirmed = true;
 					this.close();

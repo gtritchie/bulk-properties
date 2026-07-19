@@ -149,15 +149,6 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		}
 	}
 
-	// The imperative display() API is deprecated since Obsidian 1.13.0 in favour
-	// of declarative getSettingDefinitions(), but it remains fully supported.
-	// We intentionally keep the imperative model; this helper centralises the
-	// re-render so the single deprecation suppression lives in one place.
-	private rerender(): void {
-		// eslint-disable-next-line @typescript-eslint/no-deprecated -- imperative settings API still supported; see note above
-		this.display();
-	}
-
 	override display(): void {
 		const {containerEl} = this;
 		containerEl.empty();
@@ -318,7 +309,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 							(_, idx) => idx !== i,
 						);
 						if (await this.updateSetting("properties", updated)) {
-							this.rerender();
+							this.update();
 						}
 					}));
 		}
@@ -417,7 +408,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 							{name: newName, type: newType},
 						];
 						if (await this.updateSetting("properties", updated)) {
-							this.rerender();
+							this.update();
 						}
 					});
 			});
