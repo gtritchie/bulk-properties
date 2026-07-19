@@ -438,35 +438,35 @@ export class BulkEditModal extends Modal {
 				break;
 
 			case "number": {
-				const numInput = setting.controlEl.ownerDocument.createElement("input");
-				numInput.type = "number";
-				numInput.className = "bulk-properties-number-input";
+				const numInput = setting.controlEl.createEl("input", {
+					type: "number",
+					cls: "bulk-properties-number-input",
+				});
 				numInput.addEventListener("input", () => {
 					this.rawValue = numInput.value;
 				});
-				setting.controlEl.appendChild(numInput);
 				break;
 			}
 
 			case "date": {
-				const dateInput = setting.controlEl.ownerDocument.createElement("input");
-				dateInput.type = "date";
-				dateInput.className = "bulk-properties-date-input";
+				const dateInput = setting.controlEl.createEl("input", {
+					type: "date",
+					cls: "bulk-properties-date-input",
+				});
 				dateInput.addEventListener("input", () => {
 					this.rawValue = dateInput.value;
 				});
-				setting.controlEl.appendChild(dateInput);
 				break;
 			}
 
 			case "datetime": {
-				const dtInput = setting.controlEl.ownerDocument.createElement("input");
-				dtInput.type = "datetime-local";
-				dtInput.className = "bulk-properties-date-input";
+				const dtInput = setting.controlEl.createEl("input", {
+					type: "datetime-local",
+					cls: "bulk-properties-date-input",
+				});
 				dtInput.addEventListener("input", () => {
 					this.rawValue = dtInput.value;
 				});
-				setting.controlEl.appendChild(dtInput);
 				break;
 			}
 
