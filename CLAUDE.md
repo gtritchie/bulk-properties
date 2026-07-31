@@ -46,7 +46,7 @@ Entry point `src/main.ts` → bundled to `main.js` (CJS) by esbuild. Modules:
 
 ## Constraints discovered the hard way
 
-- `metadataTypeManager` is an undocumented internal API that returns `undefined` for unknown properties, which renders every input as plain text. Property names and types are configured in plugin settings, **not** discovered by scanning the vault. See `src/settings.ts:70`.
+- Property **names** come from a vault frontmatter scan (`getAllPropertyNames()`, `src/settings.ts:5`), used both for settings autocomplete and as a guard. Property **types** are looked up by `detectPropertyType()` (`:84`) through `metadataTypeManager`, an undocumented internal API absent from `obsidian.d.ts`. It returns a default `"text"` widget for names it does not know, so the scanned name set gates the lookup — remove that guard and unknown properties silently pre-fill as Text. Detection only pre-fills the dropdown; the type stored in settings is the source of truth when editing.
 - Selection is vault-wide. There is no public API to scope it to the active Base view; `README.md:7` documents this as a known limitation.
 - `minAppVersion` is `1.13.0`, driven by `setDestructive()` (`src/confirm-modal.ts:35`, `src/remove-selection-property.ts:46`) and `SettingPage.update()`, called as `this.update()` (`src/settings.ts:312`, `:411`). Using an API newer than that means bumping `minAppVersion` and `versions.json` deliberately.
 
