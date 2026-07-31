@@ -48,7 +48,7 @@ Entry point `src/main.ts` → bundled to `main.js` (CJS) by esbuild. Modules:
 
 - `metadataTypeManager` is an undocumented internal API that returns `undefined` for unknown properties, which renders every input as plain text. Property names and types are configured in plugin settings, **not** discovered by scanning the vault. See `src/settings.ts:70`.
 - Selection is vault-wide. There is no public API to scope it to the active Base view; `README.md:7` documents this as a known limitation.
-- `minAppVersion` is `1.13.0`, driven by `setDestructive()` (`src/confirm-modal.ts:35`, `src/remove-selection-property.ts:46`). Using an API newer than that means bumping `minAppVersion` and `versions.json` deliberately.
+- `minAppVersion` is `1.13.0`, driven by `setDestructive()` (`src/confirm-modal.ts:35`, `src/remove-selection-property.ts:46`) and `SettingPage.update()`, called as `this.update()` (`src/settings.ts:312`, `:411`). Using an API newer than that means bumping `minAppVersion` and `versions.json` deliberately.
 
 ## Key constraints
 
@@ -58,6 +58,7 @@ Entry point `src/main.ts` → bundled to `main.js` (CJS) by esbuild. Modules:
 - `version` is semver; keep `minAppVersion` accurate. Canonical validation rules: https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/validate-plugin-entry.yml
 - Use `this.register*` helpers for all DOM events, intervals, and workspace listeners — ensures cleanup on unload
 - Mobile compatibility by default (`isDesktopOnly: false`) — avoid Node/Electron-only APIs unless that is toggled
+- Target current Obsidian only. Users on older app versions are served the last compatible release via `versions.json`, so new APIs may be adopted directly — never add back-compat shims or dual code paths for pre-1.13 Obsidian
 
 ## Security & privacy
 
