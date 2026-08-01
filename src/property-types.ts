@@ -83,7 +83,7 @@ export function detectPropertyType(app: App, name: string): PropertyType | null 
 	try {
 		// Only look up types for properties that exist in the vault.
 		// metadataTypeManager returns a default widget ("text") for unknown
-		// names, which would silently pre-fill the type dropdown.
+		// names, which would make callers treat unknown properties as Text.
 		const known = new Set(getAllPropertyNames(app));
 		if (!known.has(name)) return null;
 

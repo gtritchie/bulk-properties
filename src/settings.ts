@@ -44,9 +44,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			{
 				name: "Selection property",
 				desc: "The checkbox property used to mark notes as selected",
-				render: setting => {
-					this.renderSelectionProperty(setting);
-				},
+				render: setting => this.renderSelectionProperty(setting),
 			},
 			{
 				name: "Deselect when finished",
@@ -74,6 +72,9 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					},
 				},
 				onDelete: index => {
+					// Out-of-range indices are reachable: on mobile the
+					// add-item row shares the list element, and the
+					// keyboard delete handler indexes across all rows.
 					const name = rendered[index]?.name;
 					if (name === undefined) return;
 					void this.mutateProperties(current =>
@@ -98,12 +99,29 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 	 * control reverts to the stored value.
 	 */
 	override async setControlValue(key: string, value: unknown): Promise<void> {
+		// The casts below erase compile-time checking, so fail fast on a
+		// key or value a future control definition could get wrong —
+		// otherwise the bad write would persist silently into data.json.
+		if (!(key in DEFAULT_SETTINGS)
+			|| typeof value !== typeof DEFAULT_SETTINGS[key as keyof BulkPropertiesSettings]) {
+			console.error(
+				`bulk-properties: rejected control write for "${key}": unknown key or mismatched value type`,
+			);
+			return;
+		}
 		const k = key as keyof BulkPropertiesSettings;
 		const saved = await this.saveSetting(
 			k,
 			value as BulkPropertiesSettings[keyof BulkPropertiesSettings],
 		);
 		if (!saved) {
+			// The framework skips re-rendering a control row that holds
+			// focus, so drop focus first or the revert won't reach the
+			// control the user just changed.
+			const active = this.containerEl.doc.activeElement;
+			if (active instanceof HTMLElement) {
+				active.blur();
+			}
 			this.update();
 			return;
 		}
@@ -131,7 +149,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private renderSelectionProperty(setting: Setting): void {
+	private renderSelectionProperty(setting: Setting): () => void {
 		const isConflicting = (name: string) =>
 			this.plugin.settings.properties.some(p => p.name === name);
 
@@ -156,6 +174,8 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			}
 		};
 
+		let flushPendingCommit = (): void => {};
+
 		setting.addSearch(search => {
 			const commitSelectionProperty = async () => {
 				const normalized = search.inputEl.value.trim() || "selected";
@@ -179,12 +199,24 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					}
 					this.plugin.updateStatusBar();
 					updateWarning();
+				} else if (search.inputEl.value === draft) {
+					// Save failed: revert the draft so the input shows
+					// the stored value, like every other failure path.
+					search.setValue(this.plugin.settings.selectionProperty);
 				}
 			};
 
 			// Defer blur so a suggestion click can cancel it
 			let pendingBlur = 0;
 			const win = search.inputEl.win;
+
+			// Closing the settings modal while the input is focused fires
+			// no blur event, so the row's cleanup flushes the pending
+			// commit instead of silently dropping the typed draft.
+			flushPendingCommit = () => {
+				win.clearTimeout(pendingBlur);
+				void commitSelectionProperty();
+			};
 
 			search
 				.setPlaceholder("Selected")
@@ -204,6 +236,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		});
 
 		updateWarning();
+		return () => flushPendingCommit();
 	}
 
 	private openAddPropertyModal(): void {
@@ -218,7 +251,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 	/**
 	 * Queues a reorder captured as identities rather than positions: the
-	 * moved row plus the rendered neighbors around its destination.
+	 * moved row plus all rendered rows on each side of its destination.
 	 * Indices alone would target the wrong entry if another mutation
 	 * composes ahead of this one in the queue. The transform inserts
 	 * before the nearest surviving successor, else after the nearest
@@ -230,6 +263,8 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		oldIndex: number,
 		newIndex: number,
 	): void {
+		// Same out-of-range guard as onDelete: the mobile add-item row
+		// shares the list element, so bad indices are reachable.
 		const moved = rendered[oldIndex];
 		if (!moved) return;
 		const remaining = rendered.filter((_, i) => i !== oldIndex);

@@ -170,6 +170,20 @@ export default class BulkPropertiesPlugin extends Plugin {
 					`bulk-properties: discarded ${before - this.settings.properties.length} malformed property entries from settings`,
 				);
 			}
+
+			// Names key the settings tab's list mutations, so duplicates
+			// from a hand-edited data.json must not survive load.
+			const seenNames = new Set<string>();
+			this.settings.properties = this.settings.properties.filter(p => {
+				if (seenNames.has(p.name)) {
+					console.warn(
+						`bulk-properties: discarded duplicate property "${p.name}" from settings`,
+					);
+					return false;
+				}
+				seenNames.add(p.name);
+				return true;
+			});
 		}
 	}
 
