@@ -7,7 +7,6 @@ import {
 	showLargeOperationNotice,
 } from "./large-operation-notice";
 import {withProgress} from "./progress";
-import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
 // `app.setting` is an undocumented internal API used by core plugins to
 // open the settings pane. Declared here as an optional property so it
@@ -248,15 +247,11 @@ export class BulkEditModal extends Modal {
 
 			new Setting(contentEl)
 				.setName("Deselect when finished")
-				.addToggle(toggle => {
-					makeToggleAccessible(toggle, "Deselect when finished", this.deselectWhenFinished);
-					toggle
-						.setValue(this.deselectWhenFinished)
-						.onChange(value => {
-							this.deselectWhenFinished = value;
-							updateToggleAriaChecked(toggle, value);
-						});
-				});
+				.addToggle(toggle => toggle
+					.setValue(this.deselectWhenFinished)
+					.onChange(value => {
+						this.deselectWhenFinished = value;
+					}));
 
 			new Setting(contentEl).addButton(btn => {
 				btn

@@ -1,6 +1,5 @@
 import {Modal, Notice, Setting} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
-import {makeToggleAccessible, updateToggleAriaChecked} from "./accessible-toggle";
 
 export const LARGE_OPERATION_THRESHOLD = 25;
 
@@ -46,15 +45,11 @@ class LargeOperationNoticeModal extends Modal {
 		new Setting(contentEl)
 			.setName("Don't show this again")
 			.setDesc("You can re-enable this warning in settings.")
-			.addToggle(toggle => {
-				makeToggleAccessible(toggle, "Don't show this again", false);
-				toggle
-					.setValue(false)
-					.onChange(value => {
-						updateToggleAriaChecked(toggle, value);
-						this.dontShowAgain = value;
-					});
-			});
+			.addToggle(toggle => toggle
+				.setValue(false)
+				.onChange(value => {
+					this.dontShowAgain = value;
+				}));
 
 		new Setting(contentEl)
 			.addButton(btn => btn
