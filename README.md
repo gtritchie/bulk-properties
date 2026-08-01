@@ -13,7 +13,7 @@ This plugin uses a checkbox property (default: `selected`) to track which notes 
 Before using the command, configure the plugin in **Settings → Bulk Properties**:
 
 - **Selection property** — the name of the checkbox property used to mark notes as selected (default: `selected`). Autocompletes from existing vault properties.
-- **Properties** — add the properties you want to be available for bulk editing, specifying the name and type for each. Property names autocomplete from the vault. Supported types: Aliases, Checkbox, Date, Date & time, List, Number, Tags, Text.
+- **Properties** — add the properties you want to be available for bulk editing, specifying the name and type for each. Property names autocomplete from the vault. Supported types: Aliases, Checkbox, Date, Date & time, List, Number, Tags, Text. Drag entries to reorder them; the order controls the order of properties in the bulk edit dialog's property dropdown.
 - **Deselect when finished** — the default value for the deselect toggle in the bulk edit dialog (default: on).
 - **Show selection count in status bar** — displays the number of selected notes in the status bar (default: on). The count updates automatically as you check or uncheck the selection property. Status bar items are not available on mobile.
 

@@ -1,5 +1,6 @@
 import {Plugin, TFile} from "obsidian";
-import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS, PROPERTY_TYPES} from "./settings";
+import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
+import {PROPERTY_TYPES} from "./property-types";
 import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
 import {getSelectedFiles} from "./files";
@@ -169,6 +170,20 @@ export default class BulkPropertiesPlugin extends Plugin {
 					`bulk-properties: discarded ${before - this.settings.properties.length} malformed property entries from settings`,
 				);
 			}
+
+			// Names key the settings tab's list mutations, so duplicates
+			// from a hand-edited data.json must not survive load.
+			const seenNames = new Set<string>();
+			this.settings.properties = this.settings.properties.filter(p => {
+				if (seenNames.has(p.name)) {
+					console.warn(
+						`bulk-properties: discarded duplicate property "${p.name}" from settings`,
+					);
+					return false;
+				}
+				seenNames.add(p.name);
+				return true;
+			});
 		}
 	}
 
@@ -181,8 +196,21 @@ export default class BulkPropertiesPlugin extends Plugin {
 		key: K,
 		value: BulkPropertiesSettings[K],
 	): Promise<void> {
+		return this.updateSettingWith(key, () => value);
+	}
+
+	/**
+	 * Like updateSetting, but computes the new value from the latest
+	 * saved settings once the queued write runs, so rapid updates to the
+	 * same key compose instead of overwriting each other with values
+	 * derived from stale snapshots.
+	 */
+	updateSettingWith<K extends keyof BulkPropertiesSettings>(
+		key: K,
+		compute: (current: BulkPropertiesSettings[K]) => BulkPropertiesSettings[K],
+	): Promise<void> {
 		const save = this.saveQueue.then(async () => {
-			const candidate = {...this.settings, [key]: value};
+			const candidate = {...this.settings, [key]: compute(this.settings[key])};
 			await this.saveData(candidate);
 			this.settings = candidate;
 		});
