@@ -64,7 +64,18 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			{
 				type: "list",
 				heading: "Properties",
-				emptyState: "No properties configured. Add at least one property to use the bulk-editing feature.",
+				// The declarative API has no slot for text under a group
+				// heading, so the guidance the imperative tab showed there
+				// lives in the empty state — shown exactly when it applies.
+				emptyState: createFragment(fragment => {
+					fragment.appendText(
+						"Configure which properties are available for bulk editing.",
+					);
+					fragment.createEl("br");
+					fragment.createEl("strong", {
+						text: "You must add at least one property to use the bulk-editing feature.",
+					});
+				}),
 				addItem: {
 					name: "Add property",
 					action: () => {
