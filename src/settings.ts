@@ -80,12 +80,29 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						current.filter(p => p.name !== name));
 				},
 				onReorder: (oldIndex, newIndex) => {
+					// Capture the intent in identities, not positions: which
+					// row moved, and which rendered row it now sits before.
+					// Indices alone would target the wrong entry if another
+					// mutation composes ahead of this one in the queue.
+					const moved = rendered[oldIndex];
+					if (!moved) return;
+					const anchor = rendered
+						.filter((_, i) => i !== oldIndex)[newIndex];
 					void this.mutateProperties(current => {
-						const updated = [...current];
-						const [moved] = updated.splice(oldIndex, 1);
-						if (!moved) return current;
-						updated.splice(newIndex, 0, moved);
-						return updated;
+						const item = current.find(p => p.name === moved.name);
+						if (!item) return current;
+						const withoutMoved = current.filter(p => p !== item);
+						const anchorAt = anchor
+							? withoutMoved.findIndex(p => p.name === anchor.name)
+							: -1;
+						const to = anchorAt >= 0
+							? anchorAt
+							: Math.min(newIndex, withoutMoved.length);
+						return [
+							...withoutMoved.slice(0, to),
+							item,
+							...withoutMoved.slice(to),
+						];
 					});
 				},
 				items: rendered.map(prop => ({
