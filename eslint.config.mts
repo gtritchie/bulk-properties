@@ -28,14 +28,6 @@ export default defineConfig(
 			"@typescript-eslint/require-await": "error",
 		},
 	},
-	{
-		// We deliberately keep the imperative display() settings model for
-		// now; migrating to getSettingDefinitions() is planned separately.
-		files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx}'],
-		rules: {
-			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
-		},
-	},
 	globalIgnores([
 		"node_modules",
 		"dist",
