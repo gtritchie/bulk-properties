@@ -182,8 +182,21 @@ export default class BulkPropertiesPlugin extends Plugin {
 		key: K,
 		value: BulkPropertiesSettings[K],
 	): Promise<void> {
+		return this.updateSettingWith(key, () => value);
+	}
+
+	/**
+	 * Like updateSetting, but computes the new value from the latest
+	 * saved settings once the queued write runs, so rapid updates to the
+	 * same key compose instead of overwriting each other with values
+	 * derived from stale snapshots.
+	 */
+	updateSettingWith<K extends keyof BulkPropertiesSettings>(
+		key: K,
+		compute: (current: BulkPropertiesSettings[K]) => BulkPropertiesSettings[K],
+	): Promise<void> {
 		const save = this.saveQueue.then(async () => {
-			const candidate = {...this.settings, [key]: value};
+			const candidate = {...this.settings, [key]: compute(this.settings[key])};
 			await this.saveData(candidate);
 			this.settings = candidate;
 		});

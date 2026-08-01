@@ -35,6 +35,11 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 	}
 
 	override getSettingDefinitions(): SettingDefinitionItem[] {
+		// Snapshot of the list this render was built from. The framework
+		// reports delete indices relative to the rendered rows, so names
+		// are resolved against this snapshot, not the live settings,
+		// which a queued save may have already advanced.
+		const rendered = this.plugin.settings.properties;
 		return [
 			{
 				name: "Selection property",
@@ -69,12 +74,21 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					},
 				},
 				onDelete: index => {
-					void this.deleteProperty(index);
+					const name = rendered[index]?.name;
+					if (name === undefined) return;
+					void this.mutateProperties(current =>
+						current.filter(p => p.name !== name));
 				},
 				onReorder: (oldIndex, newIndex) => {
-					void this.reorderProperty(oldIndex, newIndex);
+					void this.mutateProperties(current => {
+						const updated = [...current];
+						const [moved] = updated.splice(oldIndex, 1);
+						if (!moved) return current;
+						updated.splice(newIndex, 0, moved);
+						return updated;
+					});
 				},
-				items: this.plugin.settings.properties.map(prop => ({
+				items: rendered.map(prop => ({
 					name: prop.name,
 					desc: PROPERTY_TYPE_LABELS[prop.type],
 					searchable: false,
@@ -200,36 +214,31 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 
 	private openAddPropertyModal(): void {
 		new AddPropertyModal(this.app, this.plugin, config => {
-			void this.addProperty(config);
+			void this.mutateProperties(current =>
+				current.some(p => p.name === config.name)
+					? current
+					: [...current, config],
+			);
 		}).open();
 	}
 
-	// The list mutations below build new arrays rather than splicing in
-	// place: updateSetting() snapshots this.plugin.settings and only
-	// assigns the candidate after the save succeeds, so mutating the
-	// current array would corrupt the pre-save state. update() re-renders
-	// from stored settings either way, reverting the UI on failure.
-
-	private async addProperty(config: PropertyConfig): Promise<void> {
-		const updated = [...this.plugin.settings.properties, config];
-		await this.saveSetting("properties", updated);
-		this.update();
-	}
-
-	private async deleteProperty(index: number): Promise<void> {
-		const updated = this.plugin.settings.properties.filter(
-			(_, i) => i !== index,
-		);
-		await this.saveSetting("properties", updated);
-		this.update();
-	}
-
-	private async reorderProperty(oldIndex: number, newIndex: number): Promise<void> {
-		const updated = [...this.plugin.settings.properties];
-		const [moved] = updated.splice(oldIndex, 1);
-		if (!moved) return;
-		updated.splice(newIndex, 0, moved);
-		await this.saveSetting("properties", updated);
+	/**
+	 * Applies a transformation to the properties list through the save
+	 * queue. The transform must not mutate its input: it receives the
+	 * latest saved list (so rapid list actions compose instead of
+	 * overwriting each other) and returns a new array. Re-renders from
+	 * stored settings afterwards, which also reverts the UI when the
+	 * save fails.
+	 */
+	private async mutateProperties(
+		transform: (current: PropertyConfig[]) => PropertyConfig[],
+	): Promise<void> {
+		try {
+			await this.plugin.updateSettingWith("properties", transform);
+		} catch (err: unknown) {
+			console.error("bulk-properties: failed to save settings:", err);
+			new Notice("Failed to save settings. Check disk space and permissions.");
+		}
 		this.update();
 	}
 }
