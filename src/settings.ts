@@ -110,6 +110,11 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			return;
 		}
 		const k = key as keyof BulkPropertiesSettings;
+		// Captured before the await: if the save fails, only the element
+		// that was focused when the user changed this control may be
+		// blurred — focus may have since moved to an unrelated control
+		// (blurring the selection-property input would commit its draft).
+		const activeBefore = this.containerEl.doc.activeElement;
 		const saved = await this.saveSetting(
 			k,
 			value as BulkPropertiesSettings[keyof BulkPropertiesSettings],
@@ -119,7 +124,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			// focus, so drop focus first or the revert won't reach the
 			// control the user just changed.
 			const active = this.containerEl.doc.activeElement;
-			if (active instanceof HTMLElement) {
+			if (active instanceof HTMLElement && active === activeBefore) {
 				active.blur();
 			}
 			this.update();
@@ -194,6 +199,14 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 				}
 				const draft = search.inputEl.value;
 				if (await this.saveSetting("selectionProperty", normalized)) {
+					if (!search.inputEl.isConnected) {
+						// The row was torn down while the save was in
+						// flight; re-render so the replacement row shows
+						// the newly stored value instead of a stale one.
+						this.plugin.updateStatusBar();
+						this.update();
+						return;
+					}
 					if (search.inputEl.value === draft) {
 						search.setValue(normalized);
 					}
@@ -210,27 +223,37 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			let pendingBlur = 0;
 			const win = search.inputEl.win;
 
-			// Closing the settings modal while the input is focused fires
-			// no blur event, so the row's cleanup flushes the pending
-			// commit instead of silently dropping the typed draft.
+			// Runs when the framework tears the row down (modal closed,
+			// or update() re-rendering the tab). Commit only on real
+			// intent — a scheduled blur commit, or the input still
+			// holding focus (closing the modal fires no blur) — so the
+			// cleanup of an untouched replacement row can never commit
+			// its stale rendered value back over a newer save.
 			flushPendingCommit = () => {
-				win.clearTimeout(pendingBlur);
-				void commitSelectionProperty();
+				const focused =
+					search.inputEl.doc.activeElement === search.inputEl;
+				if (pendingBlur !== 0 || focused) {
+					win.clearTimeout(pendingBlur);
+					pendingBlur = 0;
+					void commitSelectionProperty();
+				}
 			};
 
 			search
 				.setPlaceholder("Selected")
 				.setValue(this.plugin.settings.selectionProperty);
 			search.inputEl.addEventListener("blur", () => {
-				pendingBlur = win.setTimeout(
-					() => void commitSelectionProperty(), 0,
-				);
+				pendingBlur = win.setTimeout(() => {
+					pendingBlur = 0;
+					void commitSelectionProperty();
+				}, 0);
 			});
 			const suggest = new PropertyNameSuggest(this.app, search.inputEl);
 			suggest.exclude = () =>
 				new Set(this.plugin.settings.properties.map(p => p.name));
 			suggest.onSuggestionSelected = () => {
 				win.clearTimeout(pendingBlur);
+				pendingBlur = 0;
 				void commitSelectionProperty();
 			};
 		});
