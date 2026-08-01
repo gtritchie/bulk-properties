@@ -80,30 +80,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						current.filter(p => p.name !== name));
 				},
 				onReorder: (oldIndex, newIndex) => {
-					// Capture the intent in identities, not positions: which
-					// row moved, and which rendered row it now sits before.
-					// Indices alone would target the wrong entry if another
-					// mutation composes ahead of this one in the queue.
-					const moved = rendered[oldIndex];
-					if (!moved) return;
-					const anchor = rendered
-						.filter((_, i) => i !== oldIndex)[newIndex];
-					void this.mutateProperties(current => {
-						const item = current.find(p => p.name === moved.name);
-						if (!item) return current;
-						const withoutMoved = current.filter(p => p !== item);
-						const anchorAt = anchor
-							? withoutMoved.findIndex(p => p.name === anchor.name)
-							: -1;
-						const to = anchorAt >= 0
-							? anchorAt
-							: Math.min(newIndex, withoutMoved.length);
-						return [
-							...withoutMoved.slice(0, to),
-							item,
-							...withoutMoved.slice(to),
-						];
-					});
+					this.reorderProperty(rendered, oldIndex, newIndex);
 				},
 				items: rendered.map(prop => ({
 					name: prop.name,
@@ -237,6 +214,51 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					: [...current, config],
 			);
 		}).open();
+	}
+
+	/**
+	 * Queues a reorder captured as identities rather than positions: the
+	 * moved row plus the rendered neighbors around its destination.
+	 * Indices alone would target the wrong entry if another mutation
+	 * composes ahead of this one in the queue. The transform inserts
+	 * before the nearest surviving successor, else after the nearest
+	 * surviving predecessor, and falls back to the numeric index only
+	 * when nothing around the destination survives.
+	 */
+	private reorderProperty(
+		rendered: PropertyConfig[],
+		oldIndex: number,
+		newIndex: number,
+	): void {
+		const moved = rendered[oldIndex];
+		if (!moved) return;
+		const remaining = rendered.filter((_, i) => i !== oldIndex);
+		const successors = remaining.slice(newIndex).map(p => p.name);
+		const predecessors = remaining.slice(0, newIndex).map(p => p.name).reverse();
+
+		void this.mutateProperties(current => {
+			const item = current.find(p => p.name === moved.name);
+			if (!item) return current;
+			const rest = current.filter(p => p !== item);
+			let to = -1;
+			for (const name of successors) {
+				to = rest.findIndex(p => p.name === name);
+				if (to >= 0) break;
+			}
+			if (to < 0) {
+				for (const name of predecessors) {
+					const at = rest.findIndex(p => p.name === name);
+					if (at >= 0) {
+						to = at + 1;
+						break;
+					}
+				}
+			}
+			if (to < 0) {
+				to = Math.min(newIndex, rest.length);
+			}
+			return [...rest.slice(0, to), item, ...rest.slice(to)];
+		});
 	}
 
 	/**
