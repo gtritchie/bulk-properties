@@ -182,7 +182,16 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		let flushPendingCommit = (): void => {};
 
 		setting.addSearch(search => {
+			// The value the input was last set to programmatically. A
+			// commit proceeds only when the user edited past this
+			// baseline, so a stale replacement row rendered while an
+			// earlier save was in flight can never commit its unedited
+			// value back over the newer save — focus or blur on an
+			// untouched input is not commit intent.
+			let baseline = this.plugin.settings.selectionProperty;
+
 			const commitSelectionProperty = async () => {
+				if (search.inputEl.value === baseline) return;
 				const normalized = search.inputEl.value.trim() || "selected";
 				if (normalized === this.plugin.settings.selectionProperty) {
 					if (search.inputEl.value.trim() === "") {
@@ -195,10 +204,12 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 						`"${normalized}" is already a configured property`,
 					);
 					search.setValue(this.plugin.settings.selectionProperty);
+					baseline = this.plugin.settings.selectionProperty;
 					return;
 				}
 				const draft = search.inputEl.value;
 				if (await this.saveSetting("selectionProperty", normalized)) {
+					baseline = normalized;
 					if (!search.inputEl.isConnected) {
 						// The row was torn down while the save was in
 						// flight; re-render so the replacement row shows
@@ -216,6 +227,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 					// Save failed: revert the draft so the input shows
 					// the stored value, like every other failure path.
 					search.setValue(this.plugin.settings.selectionProperty);
+					baseline = this.plugin.settings.selectionProperty;
 				}
 			};
 
