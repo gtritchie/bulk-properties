@@ -35,10 +35,12 @@ Entry point `src/main.ts` → bundled to `main.js` (CJS) by esbuild. Modules:
 
 - `main.ts` — lifecycle only: onload/onunload, addCommand, addSettingTab, status bar
 - `bulk-edit-modal.ts` — the bulk edit dialog; the bulk of the logic lives here
-- `settings.ts` — `BulkPropertiesSettings`, defaults, `BulkPropertiesSettingTab`
+- `settings.ts` — `BulkPropertiesSettings`, defaults, declarative `BulkPropertiesSettingTab` (`getSettingDefinitions()`)
+- `property-types.ts` — property type vocabulary, vault name scan, `detectPropertyType()`, `PropertyNameSuggest`
+- `add-property-modal.ts` — form modal opened from the settings tab's property list
 - `files.ts` — vault queries: `getSelectedFiles()`, `getFilesWithProperty()`, `getPropertyValues()`
 - `toggle-selection.ts` / `deselect-all.ts` / `remove-selection-property.ts` — selection-property commands
-- `confirm-modal.ts`, `progress.ts`, `large-operation-notice.ts`, `accessible-toggle.ts` — shared UI helpers
+- `confirm-modal.ts`, `progress.ts`, `large-operation-notice.ts` — shared UI helpers
 
 **Concurrency (`bulk-edit-modal.ts`):** writes are serialized per file through `pendingSaves: Map<TFile, Promise<void>>`, and `uiLocked` stops `toggleSelection` from re-enabling checkboxes once a bulk update has started. `doUpdate()` sets `uiLocked`, disables the UI, awaits all pending saves, then operates on checked files only. Preserve both mechanisms when touching save paths — breaking them still passes build and lint.
 
@@ -46,9 +48,9 @@ Entry point `src/main.ts` → bundled to `main.js` (CJS) by esbuild. Modules:
 
 ## Constraints discovered the hard way
 
-- Property **names** come from a vault frontmatter scan (`getAllPropertyNames()`, `src/settings.ts:5`), used both for settings autocomplete and as a guard. Property **types** are looked up by `detectPropertyType()` (`:84`) through `metadataTypeManager`, an undocumented internal API absent from `obsidian.d.ts`. It returns a default `"text"` widget for names it does not know, so the scanned name set gates the lookup — remove that guard and unknown properties silently pre-fill as Text. Detection only pre-fills the dropdown; the type stored in settings is the source of truth when editing.
+- Property **names** come from a vault frontmatter scan (`getAllPropertyNames()`, `src/property-types.ts:3`), used both for settings autocomplete and as a guard. Property **types** are looked up by `detectPropertyType()` (`:82`) through `metadataTypeManager`, an undocumented internal API absent from `obsidian.d.ts`. It returns a default `"text"` widget for names it does not know, so the scanned name set gates the lookup — remove that guard and unknown properties silently pre-fill as Text. Detection only pre-fills the dropdown; the type stored in settings is the source of truth when editing.
 - Selection is vault-wide. There is no public API to scope it to the active Base view; `README.md:7` documents this as a known limitation.
-- `minAppVersion` is `1.13.0`, driven by `setDestructive()` (`src/confirm-modal.ts:35`, `src/remove-selection-property.ts:46`) and `SettingTab.update()`, called as `this.update()` (`src/settings.ts:312`, `:411`) — `BulkPropertiesSettingTab` extends `PluginSettingTab extends SettingTab`, and `update()` is `@since 1.13.0`. Using an API newer than that means bumping `minAppVersion` and `versions.json` deliberately.
+- `minAppVersion` is `1.13.0`, driven by the declarative settings API (`getSettingDefinitions()`, `setControlValue()`, `SettingTab.update()` in `src/settings.ts`) and `setDestructive()` (`src/confirm-modal.ts:35`, `src/remove-selection-property.ts:46`). Using an API newer than that (e.g. group `search`, page `displayValue`/`status`, all `@since 1.13.1`) means bumping `minAppVersion` and `versions.json` deliberately.
 
 ## Key constraints
 

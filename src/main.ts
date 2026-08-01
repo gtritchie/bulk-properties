@@ -1,5 +1,6 @@
 import {Plugin, TFile} from "obsidian";
-import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS, PROPERTY_TYPES} from "./settings";
+import {BulkPropertiesSettingTab, BulkPropertiesSettings, DEFAULT_SETTINGS} from "./settings";
+import {PROPERTY_TYPES} from "./property-types";
 import {BulkEditModal} from "./bulk-edit-modal";
 import {deselectAll} from "./deselect-all";
 import {getSelectedFiles} from "./files";

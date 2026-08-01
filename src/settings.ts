@@ -1,108 +1,12 @@
-import {AbstractInputSuggest, App, ButtonComponent, DropdownComponent, Notice, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, type Setting, type SettingDefinitionItem} from "obsidian";
 import type BulkPropertiesPlugin from "./main";
-
-function getAllPropertyNames(app: App): string[] {
-	const names = new Set<string>();
-	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter) {
-			for (const key of Object.keys(cache.frontmatter)) {
-				if (key !== "position") {
-					names.add(key);
-				}
-			}
-		}
-	}
-	return [...names].sort((a, b) => a.localeCompare(b));
-}
-
-class PropertyNameSuggest extends AbstractInputSuggest<string> {
-	onSuggestionSelected?: () => void;
-	exclude: () => Set<string> = () => new Set();
-
-	override getSuggestions(query: string): string[] {
-		const lower = query.toLowerCase();
-		const excluded = this.exclude();
-		return getAllPropertyNames(this.app).filter(
-			name => name.toLowerCase().includes(lower) && !excluded.has(name),
-		);
-	}
-
-	override renderSuggestion(value: string, el: HTMLElement): void {
-		el.setText(value);
-	}
-
-	override selectSuggestion(
-		value: string,
-		_evt: MouseEvent | KeyboardEvent,
-	): void {
-		this.setValue(value);
-		this.close();
-		this.onSuggestionSelected?.();
-	}
-}
-
-export const PROPERTY_TYPES = [
-	"text",
-	"number",
-	"checkbox",
-	"date",
-	"datetime",
-	"tags",
-	"aliases",
-	"multitext",
-] as const;
-
-export type PropertyType = typeof PROPERTY_TYPES[number];
-
-const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-	aliases: "Aliases",
-	checkbox: "Checkbox",
-	date: "Date",
-	datetime: "Date & time",
-	multitext: "List",
-	number: "Number",
-	tags: "Tags",
-	text: "Text",
-};
-
-// metadataTypeManager is an undocumented internal API — not in
-// obsidian.d.ts. Declared here as an optional property of App so all
-// access is type-safe without reaching for `any`. All access is also
-// runtime-guarded below.
-type AppWithMetadataTypeManager = App & {
-	metadataTypeManager?: {
-		getPropertyInfo?: (name: string) => { widget?: string } | undefined;
-	};
-};
-
-// Uses Obsidian's undocumented metadataTypeManager to look up the type
-// assigned to a property in Settings → Properties. Returns null if the
-// API is unavailable, the property is unknown, or the widget value
-// doesn't match a recognized type.
-function detectPropertyType(app: App, name: string): PropertyType | null {
-	try {
-		// Only look up types for properties that exist in the vault.
-		// metadataTypeManager returns a default widget ("text") for unknown
-		// names, which would silently pre-fill the type dropdown.
-		const known = new Set(getAllPropertyNames(app));
-		if (!known.has(name)) return null;
-
-		const mtm = (app as AppWithMetadataTypeManager).metadataTypeManager;
-		if (!mtm || typeof mtm.getPropertyInfo !== "function") return null;
-		const info = mtm.getPropertyInfo(name);
-		if (!info || typeof info.widget !== "string") return null;
-		const validTypes: ReadonlySet<string> = new Set(PROPERTY_TYPES);
-		return validTypes.has(info.widget) ? info.widget as PropertyType : null;
-	} catch {
-		return null;
-	}
-}
-
-export interface PropertyConfig {
-	name: string;
-	type: PropertyType;
-}
+import {AddPropertyModal} from "./add-property-modal";
+import {
+	detectPropertyType,
+	PROPERTY_TYPE_LABELS,
+	PropertyNameSuggest,
+	type PropertyConfig,
+} from "./property-types";
 
 export interface BulkPropertiesSettings {
 	deselectWhenFinished: boolean;
@@ -130,11 +34,82 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	override getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Selection property",
+				desc: "The checkbox property used to mark notes as selected",
+				render: setting => {
+					this.renderSelectionProperty(setting);
+				},
+			},
+			{
+				name: "Deselect when finished",
+				desc: "Default value for the deselect toggle in the bulk edit dialog",
+				control: {type: "toggle", key: "deselectWhenFinished"},
+			},
+			{
+				name: "Show selection count in status bar",
+				desc: "Display the number of selected notes in the status bar",
+				control: {type: "toggle", key: "showStatusBarCount"},
+			},
+			{
+				name: "Warn after large operations",
+				desc: "Re-enable the metadata cache warning after dismissing it. Shown after operations that modify many notes.",
+				control: {type: "toggle", key: "showLargeOperationWarning"},
+			},
+			{
+				type: "list",
+				heading: "Properties",
+				emptyState: "No properties configured. Add at least one property to use the bulk-editing feature.",
+				addItem: {
+					name: "Add property",
+					action: () => {
+						this.openAddPropertyModal();
+					},
+				},
+				onDelete: index => {
+					void this.deleteProperty(index);
+				},
+				onReorder: (oldIndex, newIndex) => {
+					void this.reorderProperty(oldIndex, newIndex);
+				},
+				items: this.plugin.settings.properties.map(prop => ({
+					name: prop.name,
+					desc: PROPERTY_TYPE_LABELS[prop.type],
+					searchable: false,
+				})),
+			},
+		];
+	}
+
 	/**
-	 * Updates a single setting key via the plugin's serialized
-	 * copy-on-write save queue.
+	 * Framework write path for `control` definitions. Routes through the
+	 * plugin's serialized copy-on-write save queue instead of the default
+	 * direct mutation + saveData(), and re-renders on failure so the
+	 * control reverts to the stored value.
 	 */
-	private async updateSetting<K extends keyof BulkPropertiesSettings>(
+	override async setControlValue(key: string, value: unknown): Promise<void> {
+		const k = key as keyof BulkPropertiesSettings;
+		const saved = await this.saveSetting(
+			k,
+			value as BulkPropertiesSettings[keyof BulkPropertiesSettings],
+		);
+		if (!saved) {
+			this.update();
+			return;
+		}
+		if (k === "showStatusBarCount") {
+			this.plugin.updateStatusBar();
+		}
+	}
+
+	/**
+	 * Persists a single setting through the plugin's serialized
+	 * copy-on-write save queue. Returns false after notifying the user
+	 * when the write fails.
+	 */
+	private async saveSetting<K extends keyof BulkPropertiesSettings>(
 		key: K,
 		value: BulkPropertiesSettings[K],
 	): Promise<boolean> {
@@ -148,257 +123,113 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 		}
 	}
 
-	override display(): void {
-		const {containerEl} = this;
-		containerEl.empty();
+	private renderSelectionProperty(setting: Setting): void {
+		const isConflicting = (name: string) =>
+			this.plugin.settings.properties.some(p => p.name === name);
 
-		const selectionSetting = new Setting(containerEl)
-			.setName("Selection property")
-			.setDesc("The checkbox property used to mark notes as selected")
-			.addSearch(search => {
-				const isConflicting = (name: string) =>
-					this.plugin.settings.properties.some(p => p.name === name);
-
-				const updateWarning = () => {
-					selectionSetting.descEl
-						.querySelectorAll(".mod-warning")
-						.forEach(el => el.remove());
-					if (isConflicting(this.plugin.settings.selectionProperty)) {
-						selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-						selectionSetting.descEl.createSpan({
-							text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
-							cls: "mod-warning",
-						});
-					}
-					const type = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
-					if (type !== null && type !== "checkbox") {
-						selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-						selectionSetting.descEl.createSpan({
-							text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[type]} type`,
-							cls: "mod-warning",
-						});
-					}
-				};
-
-				const commitSelectionProperty = async () => {
-					const normalized = search.inputEl.value.trim() || "selected";
-					if (normalized === this.plugin.settings.selectionProperty) {
-						if (search.inputEl.value.trim() === "") {
-							search.setValue(normalized);
-						}
-						return;
-					}
-					if (isConflicting(normalized)) {
-						new Notice(
-							`"${normalized}" is already a configured property`,
-						);
-						search.setValue(this.plugin.settings.selectionProperty);
-						return;
-					}
-					const draft = search.inputEl.value;
-					if (await this.updateSetting("selectionProperty", normalized)) {
-						if (search.inputEl.value === draft) {
-							search.setValue(normalized);
-						}
-						this.plugin.updateStatusBar();
-						updateWarning();
-					}
-				};
-
-				// Defer blur so a suggestion click can cancel it
-				let pendingBlur = 0;
-				const win = search.inputEl.win;
-
-				search
-					.setPlaceholder("Selected")
-					.setValue(this.plugin.settings.selectionProperty);
-				search.inputEl.addEventListener("blur", () => {
-					pendingBlur = win.setTimeout(
-						() => void commitSelectionProperty(), 0,
-					);
+		const updateWarning = () => {
+			setting.descEl
+				.querySelectorAll(".mod-warning")
+				.forEach(el => el.remove());
+			if (isConflicting(this.plugin.settings.selectionProperty)) {
+				setting.descEl.createEl("br", {cls: "mod-warning"});
+				setting.descEl.createSpan({
+					text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
+					cls: "mod-warning",
 				});
-				const suggest = new PropertyNameSuggest(this.app, search.inputEl);
-				suggest.exclude = () =>
-					new Set(this.plugin.settings.properties.map(p => p.name));
-				suggest.onSuggestionSelected = () => {
-					win.clearTimeout(pendingBlur);
-					void commitSelectionProperty();
-				};
-			});
-
-		if (this.plugin.settings.properties.some(
-			p => p.name === this.plugin.settings.selectionProperty,
-		)) {
-			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-			selectionSetting.descEl.createSpan({
-				text: `"${this.plugin.settings.selectionProperty}" is also a configured property and will be hidden in the bulk edit dialog`,
-				cls: "mod-warning",
-			});
-		}
-		const selectionType = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
-		if (selectionType !== null && selectionType !== "checkbox") {
-			selectionSetting.descEl.createEl("br", {cls: "mod-warning"});
-			selectionSetting.descEl.createSpan({
-				text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[selectionType]} type`,
-				cls: "mod-warning",
-			});
-		}
-
-		new Setting(containerEl)
-			.setName("Deselect when finished")
-			.setDesc("Default value for the deselect toggle in the bulk edit dialog")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.deselectWhenFinished)
-				.onChange(async (value) => {
-					await this.updateSetting("deselectWhenFinished", value);
-				}));
-
-		new Setting(containerEl)
-			.setName("Show selection count in status bar")
-			.setDesc("Display the number of selected notes in the status bar")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showStatusBarCount)
-				.onChange(async (value) => {
-					if (await this.updateSetting("showStatusBarCount", value)) {
-						this.plugin.updateStatusBar();
-					}
-				}));
-
-		new Setting(containerEl)
-			.setName("Warn after large operations")
-			.setDesc("Re-enable the metadata cache warning after dismissing it. Shown after operations that modify many notes.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showLargeOperationWarning)
-				.onChange(async (value) => {
-					await this.updateSetting("showLargeOperationWarning", value);
-				}));
-
-		const propertiesHeading = new Setting(containerEl)
-			.setName("Properties")
-			.setHeading();
-		propertiesHeading.descEl.appendText(
-			"Configure which properties are available for bulk editing.",
-		);
-		propertiesHeading.descEl.createEl("br");
-		propertiesHeading.descEl.createEl("strong", {
-			text: "You must add at least one property to use the bulk-editing feature.",
-		});
-
-		for (let i = 0; i < this.plugin.settings.properties.length; i++) {
-			const prop = this.plugin.settings.properties[i]!;
-			new Setting(containerEl)
-				.setName(prop.name)
-				.setDesc(PROPERTY_TYPE_LABELS[prop.type])
-				.addButton(btn => btn
-					.setButtonText("Remove")
-					.onClick(async () => {
-						const updated = this.plugin.settings.properties.filter(
-							(_, idx) => idx !== i,
-						);
-						if (await this.updateSetting("properties", updated)) {
-							this.update();
-						}
-					}));
-		}
-
-		let nameInputEl: HTMLInputElement;
-		let newType: PropertyType | "" = "";
-		let addBtn: ButtonComponent | undefined;
-		let typeDropdown: DropdownComponent;
-		let lastDetectedName = "";
-
-		function updateAddButton(): void {
-			addBtn?.setDisabled(
-				nameInputEl.value.trim() === "" || newType === "",
-			);
-		}
-
-		const tryAutoDetect = (): void => {
-			const name = nameInputEl.value.trim();
-			if (name === lastDetectedName) return;
-			lastDetectedName = name;
-			if (name === "") {
-				newType = "";
-				typeDropdown.setValue("");
-				return;
 			}
-			const detected = detectPropertyType(this.app, name);
-			newType = detected ?? "";
-			typeDropdown.setValue(detected ?? "");
+			const type = detectPropertyType(this.app, this.plugin.settings.selectionProperty);
+			if (type !== null && type !== "checkbox") {
+				setting.descEl.createEl("br", {cls: "mod-warning"});
+				setting.descEl.createSpan({
+					text: `The selection property must be a Checkbox type; this property has the ${PROPERTY_TYPE_LABELS[type]} type`,
+					cls: "mod-warning",
+				});
+			}
 		};
 
-		const addSetting = new Setting(containerEl)
-			.setName("Add property")
-			.addSearch(search => {
-				search.setPlaceholder("Property name");
-				search.onChange(() => updateAddButton());
-				nameInputEl = search.inputEl;
-				const suggest = new PropertyNameSuggest(this.app, nameInputEl);
-				suggest.exclude = () => {
-					const names = this.plugin.settings.properties.map(p => p.name);
-					names.push(this.plugin.settings.selectionProperty);
-					return new Set(names);
-				};
-				suggest.onSuggestionSelected = () => {
-					tryAutoDetect();
-					updateAddButton();
-				};
-				nameInputEl.addEventListener("blur", () => {
-					tryAutoDetect();
-					updateAddButton();
-				});
-			})
-			.addDropdown(dropdown => {
-				typeDropdown = dropdown;
-				const placeholder = dropdown.selectEl.createEl("option", {
-					value: "",
-					text: "Choose type\u2026",
-				});
-				placeholder.selected = true;
-
-				const sorted = Object.entries(PROPERTY_TYPE_LABELS)
-					.sort(([, a], [, b]) => a.localeCompare(b));
-				for (const [value, label] of sorted) {
-					dropdown.addOption(value, label);
+		setting.addSearch(search => {
+			const commitSelectionProperty = async () => {
+				const normalized = search.inputEl.value.trim() || "selected";
+				if (normalized === this.plugin.settings.selectionProperty) {
+					if (search.inputEl.value.trim() === "") {
+						search.setValue(normalized);
+					}
+					return;
 				}
-				dropdown.onChange(value => {
-					newType = value as PropertyType;
-					updateAddButton();
-				});
-			})
-			.addButton(btn => {
-				addBtn = btn;
-				btn.setButtonText("Add")
-					.setCta()
-					.setDisabled(true)
-					.onClick(async () => {
-						const newName = nameInputEl.value.trim();
-						if (!newName || newType === "") {
-							return;
-						}
-						if (newName === this.plugin.settings.selectionProperty) {
-							new Notice(
-								`"${newName}" is the selection property and cannot be added`,
-							);
-							return;
-						}
-						if (this.plugin.settings.properties.some(
-							p => p.name === newName,
-						)) {
-							new Notice(
-								`Property "${newName}" is already configured`,
-							);
-							return;
-						}
-						const updated = [
-							...this.plugin.settings.properties,
-							{name: newName, type: newType},
-						];
-						if (await this.updateSetting("properties", updated)) {
-							this.update();
-						}
-					});
+				if (isConflicting(normalized)) {
+					new Notice(
+						`"${normalized}" is already a configured property`,
+					);
+					search.setValue(this.plugin.settings.selectionProperty);
+					return;
+				}
+				const draft = search.inputEl.value;
+				if (await this.saveSetting("selectionProperty", normalized)) {
+					if (search.inputEl.value === draft) {
+						search.setValue(normalized);
+					}
+					this.plugin.updateStatusBar();
+					updateWarning();
+				}
+			};
+
+			// Defer blur so a suggestion click can cancel it
+			let pendingBlur = 0;
+			const win = search.inputEl.win;
+
+			search
+				.setPlaceholder("Selected")
+				.setValue(this.plugin.settings.selectionProperty);
+			search.inputEl.addEventListener("blur", () => {
+				pendingBlur = win.setTimeout(
+					() => void commitSelectionProperty(), 0,
+				);
 			});
-		addSetting.settingEl.addClass("bulk-properties-add-property");
+			const suggest = new PropertyNameSuggest(this.app, search.inputEl);
+			suggest.exclude = () =>
+				new Set(this.plugin.settings.properties.map(p => p.name));
+			suggest.onSuggestionSelected = () => {
+				win.clearTimeout(pendingBlur);
+				void commitSelectionProperty();
+			};
+		});
+
+		updateWarning();
+	}
+
+	private openAddPropertyModal(): void {
+		new AddPropertyModal(this.app, this.plugin, config => {
+			void this.addProperty(config);
+		}).open();
+	}
+
+	// The list mutations below build new arrays rather than splicing in
+	// place: updateSetting() snapshots this.plugin.settings and only
+	// assigns the candidate after the save succeeds, so mutating the
+	// current array would corrupt the pre-save state. update() re-renders
+	// from stored settings either way, reverting the UI on failure.
+
+	private async addProperty(config: PropertyConfig): Promise<void> {
+		const updated = [...this.plugin.settings.properties, config];
+		await this.saveSetting("properties", updated);
+		this.update();
+	}
+
+	private async deleteProperty(index: number): Promise<void> {
+		const updated = this.plugin.settings.properties.filter(
+			(_, i) => i !== index,
+		);
+		await this.saveSetting("properties", updated);
+		this.update();
+	}
+
+	private async reorderProperty(oldIndex: number, newIndex: number): Promise<void> {
+		const updated = [...this.plugin.settings.properties];
+		const [moved] = updated.splice(oldIndex, 1);
+		if (!moved) return;
+		updated.splice(newIndex, 0, moved);
+		await this.saveSetting("properties", updated);
+		this.update();
 	}
 }
