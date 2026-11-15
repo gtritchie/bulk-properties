@@ -106,7 +106,7 @@ class PropertyValueSuggest extends AbstractInputSuggest<string> {
 		value: string,
 		evt: MouseEvent | KeyboardEvent,
 	): void {
-		if (evt instanceof MouseEvent) {
+		if (evt.instanceOf(MouseEvent)) {
 			this.didSelect = true;
 		}
 		this.setValue("");
@@ -630,11 +630,11 @@ export class BulkEditModal extends Modal {
 				});
 
 				pillContainer.addEventListener("focusout", (e: FocusEvent) => {
-					const next = e.relatedTarget;
-					if (
-						next instanceof Node &&
-						pillContainer.contains(next)
-					) {
+					// EventTarget has no cross-window instanceOf(); focus
+					// moves only between elements, so relatedTarget is an
+					// Element or null, and contains(null) returns false.
+					const next = e.relatedTarget as Node | null;
+					if (pillContainer.contains(next)) {
 						return;
 					}
 					const commitPending = () => {
@@ -652,7 +652,7 @@ export class BulkEditModal extends Modal {
 						}
 					};
 					if (suggest) {
-						window.requestAnimationFrame(commitPending);
+						pillContainer.win.requestAnimationFrame(commitPending);
 					} else {
 						commitPending();
 					}

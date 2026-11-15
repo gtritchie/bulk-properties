@@ -135,7 +135,7 @@ export class BulkPropertiesSettingTab extends PluginSettingTab {
 			// focus, so drop focus first or the revert won't reach the
 			// control the user just changed.
 			const active = this.containerEl.doc.activeElement;
-			if (active instanceof HTMLElement && active === activeBefore) {
+			if (active?.instanceOf(HTMLElement) && active === activeBefore) {
 				active.blur();
 			}
 			this.update();
