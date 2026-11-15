@@ -652,7 +652,7 @@ export class BulkEditModal extends Modal {
 						}
 					};
 					if (suggest) {
-						window.requestAnimationFrame(commitPending);
+						pillContainer.win.requestAnimationFrame(commitPending);
 					} else {
 						commitPending();
 					}
